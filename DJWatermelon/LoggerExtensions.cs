@@ -24,6 +24,13 @@ internal static partial class LoggerExtensions
 
     [LoggerMessage(
         EventId = 1,
+        EventName = "TokenMisplaced",
+        Level = LogLevel.Error,
+        Message = "The Discord bot's token was misplaced. Include it to any appropriate config source with the key name <DiscordToken>.")]
+    public static partial void LogTokenMisplaced(this ILogger logger);
+
+    [LoggerMessage(
+        EventId = 2,
         EventName = "DiscordWrapperReady",
         Level = LogLevel.Information,
         Message = "Connection with Discord was established successfully, and all data is synced and up-to-date.")]
@@ -31,7 +38,14 @@ internal static partial class LoggerExtensions
         this ILogger logger);
 
     [LoggerMessage(
-        EventId = 2,
+        EventId = 3,
+        EventName = "TestingGuildIdMisplaced",
+        Level = LogLevel.Warning,
+        Message = "The ID of the guild used for testing is misplaced - consider adding it to any appropriate config source with the key <DebugGuildId>.")]
+    public static partial void LogTestingGuildIdMisplaced(this ILogger logger);
+
+    [LoggerMessage(
+        EventId = 4,
         EventName = "SlashCommandReceived",
         Level = LogLevel.Debug,
         Message = "The slash command was executed and being handled.")]
@@ -39,10 +53,10 @@ internal static partial class LoggerExtensions
         this ILogger logger);
 
     [LoggerMessage(
-        EventId = 3,
+        EventId = 5,
         EventName = "SlashCommandFailed",
         Level = LogLevel.Warning,
-        Message = "")]
+        Message = "An error occurred while processing the slash command.")]
     public static partial void LogSlashCommandFailed(this ILogger logger);
 
     #endregion

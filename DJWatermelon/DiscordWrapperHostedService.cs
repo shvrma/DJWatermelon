@@ -54,7 +54,14 @@ internal class DiscordWrapperHostedService : BackgroundService
             return Task.CompletedTask;
         };
 
-        await _discordClient.LoginAsync(TokenType.Bot, _config["DiscordToken"]);
+        // Check the bot's token presence and connect if it is.
+        string? token = _config["DiscordToken"];
+        if (string.IsNullOrWhiteSpace(token))
+        {
+            _logger.LogTokenMisplaced();
+            ArgumentException.ThrowIfNullOrEmpty(token);
+        }
+        await _discordClient.LoginAsync(TokenType.Bot, token);
         await _discordClient.StartAsync();
 
         // Expicticly wait until the wrapper is ready as it initializes on another thread.
@@ -66,18 +73,26 @@ internal class DiscordWrapperHostedService : BackgroundService
         };
         SpinWait.SpinUntil(() => isDiscordWrapperReady);
 
+        await _discordClient.SetGameAsync("/help", type: ActivityType.Listening);
+
         _logger.LogDiscordWrapperReady();
 
         // Register bot's commands.
         await _interactionService.AddModulesAsync(Assembly.GetExecutingAssembly(), _serviceProvider);
 
-        ulong debugGuildId = _config.GetValue<ulong>("DebugGuildId");
-        if (_hostEnvironment.IsDevelopment())
+        string? debugGuildIdStr = _config["TestingGuildId"];
+        if (_hostEnvironment.IsDevelopment() && !string.IsNullOrWhiteSpace(debugGuildIdStr))
         {
-            await _interactionService.RegisterCommandsToGuildAsync(debugGuildId);
+            await _interactionService.RegisterCommandsToGuildAsync(
+                guildId: ulong.Parse(debugGuildIdStr!));
         }
         else
         {
+            if (string.IsNullOrWhiteSpace(debugGuildIdStr))
+            {
+                _logger.LogTestingGuildIdMisplaced();
+            }
+
             await _interactionService.RegisterCommandsGloballyAsync();
         }
 

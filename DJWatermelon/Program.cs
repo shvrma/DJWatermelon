@@ -13,10 +13,16 @@ HostApplicationBuilder hostBuilder =
 
 hostBuilder.Services.AddSingleton<DiscordSocketClient>();
 hostBuilder.Services.AddSingleton<InteractionService>();
+hostBuilder.Services.AddSingleton<PlayersManager>();
 
 hostBuilder.Services.AddSingleton(new DiscordSocketConfig
 {
-    GatewayIntents = GatewayIntents.GuildVoiceStates
+    GatewayIntents = GatewayIntents.GuildVoiceStates | GatewayIntents.Guilds
+});
+
+hostBuilder.Services.AddSingleton(new InteractionServiceConfig
+{
+    UseCompiledLambda = true
 });
 
 hostBuilder.Services.AddHostedService<DiscordWrapperHostedService>();
