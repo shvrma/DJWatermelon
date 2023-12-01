@@ -96,8 +96,14 @@ internal class DiscordWrapperHostedService : BackgroundService
             await _interactionService.RegisterCommandsGloballyAsync();
         }
 
-        // Set a command's handlers.
+        // Set a command's handlers and other staff.
         _discordClient.SlashCommandExecuted += SlashCommandHandler;
+        _discordClient.VoiceServerUpdated += VoiceServerUpdated;
+    }
+
+    private Task VoiceServerUpdated(SocketVoiceServer voiceServer)
+    {
+        throw new NotImplementedException();
     }
 
     private async Task SlashCommandHandler(SocketSlashCommand cmd)
@@ -113,7 +119,7 @@ internal class DiscordWrapperHostedService : BackgroundService
         {
             _logger.LogSlashCommandFailed();
 
-
+            
         }
     }
 }

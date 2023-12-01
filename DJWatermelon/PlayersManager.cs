@@ -8,7 +8,6 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Hosting;
-using CliWrap;
 
 namespace DJWatermelon;
 
@@ -27,17 +26,8 @@ internal class PlayersManager
 
     public Player CreatePlayer(ulong guildId, IAudioClient audioClient)
     {
-        Command ffmpegRunner = Cli
-            .Wrap("ffmpeg.exe")
-            .WithWorkingDirectory(_environment.ContentRootPath)
-            .WithArguments(args =>
-            {
-                args.Add(",");
-            });
-
         Player player = new(
-            audioClient, 
-            ffmpegRunner);
+            audioClient);
 
         _players.TryAdd(guildId, player);
         return player;
