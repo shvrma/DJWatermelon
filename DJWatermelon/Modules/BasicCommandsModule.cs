@@ -1,5 +1,6 @@
 ﻿using Discord.Audio;
 using Discord.Interactions;
+using DJWatermelon.AudioService;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -10,6 +11,13 @@ namespace DJWatermelon.Modules;
 
 public class BasicCommandsModule : InteractionModuleBase
 {
+    private readonly PlayersManager _playersManager;
+
+    internal BasicCommandsModule(PlayersManager playersManager)
+    {
+        _playersManager = playersManager;
+    }
+
     [SlashCommand(
         "ping",
         "Try pinging the bot to see if you get a response.")]
@@ -32,7 +40,9 @@ public class BasicCommandsModule : InteractionModuleBase
             return;
         }
 
-        IAudioClient audioClient = await channel.ConnectAsync(selfDeaf: true);
+        IAudioClient audioClient = await channel.ConnectAsync();
         await RespondAsync($"Successfully joined {channel.Mention}.");
+        
+        audioClient.CreateOpusStream();
     }
 }

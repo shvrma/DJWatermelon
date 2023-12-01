@@ -60,4 +60,22 @@ internal static partial class LoggerExtensions
     public static partial void LogSlashCommandFailed(this ILogger logger);
 
     #endregion
+
+    #region Lavalink wrapper messages
+
+    [LoggerMessage(
+        EventId = 6,
+        EventName = "EventPayloadForInexistentPlayer",
+        Level = LogLevel.Warning,
+        Message = "Event payload received for an inexistent player with guild id: {guildId}.")]
+    public static partial void LogEventPayloadForInexistentPlayer(this ILogger logger, ulong guildId);
+
+    [LoggerMessage(
+        EventId = 7,
+        EventName = "ReceivedPayload",
+        Level = LogLevel.Trace,
+        Message = "A new payload from Lavalink was received.\n\n{serializedPayload}")]
+    public static partial void LogReceivedPayload(this ILogger logger, string serializedPayload);
+
+    #endregion
 }

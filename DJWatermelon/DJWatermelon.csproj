@@ -15,15 +15,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <None Update="binaries\ffmpeg.exe">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Update="binaries\opus.dll">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Update="binaries\libsodium.dll">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
+    <Folder Include="AudioService\Lavalink\EventPayloads\" />
   </ItemGroup>
 
 </Project>

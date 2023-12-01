@@ -3,16 +3,19 @@ using Discord.Interactions;
 using Discord.Rest;
 using Discord.WebSocket;
 using DJWatermelon;
+using DJWatermelon.AudioService;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using System.Reflection;
+using YoutubeExplode;
 
 HostApplicationBuilder hostBuilder =
     Host.CreateApplicationBuilder();
 
 hostBuilder.Services.AddSingleton<DiscordSocketClient>();
 hostBuilder.Services.AddSingleton<InteractionService>();
+hostBuilder.Services.AddSingleton<YoutubeClient>();
 hostBuilder.Services.AddSingleton<PlayersManager>();
 
 hostBuilder.Services.AddSingleton(new DiscordSocketConfig
