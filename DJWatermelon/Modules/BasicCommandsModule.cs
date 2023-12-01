@@ -11,13 +11,6 @@ namespace DJWatermelon.Modules;
 
 public class BasicCommandsModule : InteractionModuleBase
 {
-    private readonly PlayersManager _playersManager;
-
-    internal BasicCommandsModule(PlayersManager playersManager)
-    {
-        _playersManager = playersManager;
-    }
-
     [SlashCommand(
         "ping",
         "Try pinging the bot to see if you get a response.")]
@@ -42,7 +35,7 @@ public class BasicCommandsModule : InteractionModuleBase
 
         IAudioClient audioClient = await channel.ConnectAsync();
         await RespondAsync($"Successfully joined {channel.Mention}.");
-        
+
         audioClient.CreateOpusStream();
     }
 }
