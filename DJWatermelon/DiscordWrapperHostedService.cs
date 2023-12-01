@@ -24,8 +24,6 @@ internal class DiscordWrapperHostedService : BackgroundService
     private readonly IHostEnvironment _hostEnvironment;
     private readonly IServiceProvider _serviceProvider;
 
-    private readonly PlayersManager _playersManager;
-
     public DiscordWrapperHostedService(
         DiscordSocketClient client,
         InteractionService interactionService,
@@ -33,8 +31,7 @@ internal class DiscordWrapperHostedService : BackgroundService
         ILogger<DiscordSocketClient> discordLogger,
         IConfiguration config,
         IHostEnvironment hostEnvironment,
-        IServiceProvider serviceProvider,
-        PlayersManager playersManager)
+        IServiceProvider serviceProvider)
     {
         _discordClient = client;
         _logger = logger;
@@ -43,7 +40,6 @@ internal class DiscordWrapperHostedService : BackgroundService
         _interactionService = interactionService;
         _hostEnvironment = hostEnvironment;
         _serviceProvider = serviceProvider;
-        _playersManager = playersManager;
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -103,7 +99,13 @@ internal class DiscordWrapperHostedService : BackgroundService
 
         // Set a command's handlers.
         _discordClient.SlashCommandExecuted += SlashCommandHandler;
-        
+        // Set own 
+        _discordClient.VoiceServerUpdated += VoiceServerUpdated;
+    }
+
+    private Task VoiceServerUpdated(SocketVoiceServer voiceServer)
+    {
+        throw new NotImplementedException();
     }
 
     private async Task SlashCommandHandler(SocketSlashCommand cmd)

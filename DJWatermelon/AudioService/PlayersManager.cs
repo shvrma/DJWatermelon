@@ -14,30 +14,17 @@ using YoutubeExplode.Videos.Streams;
 
 namespace DJWatermelon.AudioService;
 
-internal class PlayersManager<PlayerT> where PlayerT : Player
+internal class PlayersManager<PlayerT>: IPlayerManager<PlayerT> where PlayerT : Player
 {
     private readonly ConcurrentDictionary<ulong, PlayerT> _players = new();
     private readonly IHostEnvironment _environment;
-    private readonly YoutubeClient _youtubeClient;
 
     public PlayersManager(
-        IHostEnvironment environment,
-        YoutubeClient youtubeClient)
+        IHostEnvironment environment)
     {
         _environment = environment;
-        _youtubeClient = youtubeClient;
     }
 
-    public bool TryGet(ulong id, [MaybeNullWhen(false)] out PlayerT? player)
+    public bool TryGet(ulong id, [NotNullWhen(true)] out PlayerT? player)
         => _players.TryGetValue(id, out player);
-
-    public async Task<TrackHandle> SearchForTrackAsync(string prompt)
-    {
-        StreamManifest source = await _youtubeClient.Videos.Streams.GetManifestAsync(prompt);
-        IEnumerable<AudioOnlyStreamInfo> streams =
-            source.GetAudioOnlyStreams().Where(streamInfo => streamInfo.AudioCodec == "opus");
-
-        Stream stream = await _youtubeClient.Videos.Streams.GetAsync(streams.First());
-        return new TrackHandle("test", stream);
-    }
 }

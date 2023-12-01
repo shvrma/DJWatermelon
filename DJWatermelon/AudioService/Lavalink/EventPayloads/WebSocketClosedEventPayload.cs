@@ -2,7 +2,7 @@
 
 namespace DJWatermelon.AudioService.Lavalink.EventPayloads;
 
-public sealed record class WebSocketClosedEventPayload(
+internal sealed record class WebSocketClosedEventPayload(
     [property: JsonRequired]
     [property: JsonPropertyName("guildId")]
     ulong GuildId,

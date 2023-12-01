@@ -21,7 +21,7 @@ internal abstract class Player
         // _stream = new Lazy<AudioOutStream>(_audioClient.CreateOpusStream());
     }
 
-    public async Task PlayAsync(TrackHandle track)
+    public async Task PlayAsync(ITrackHandle track)
     {
 
     }
