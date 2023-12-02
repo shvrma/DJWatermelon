@@ -20,13 +20,13 @@ hostBuilder.Services.AddSingleton<YoutubeClient>();
 
 // By default, do all the audio encoding/decoding and streaming
 // functionality on the application host - otherwise - use Lavalink.
+hostBuilder.Services.AddSingleton<PlayersManager>();
 if (hostBuilder.Configuration.GetValue<bool>("UseInternalAudioProcessing"))
 {
     // TODO.
 }
 else
 {
-    hostBuilder.Services.AddSingleton<IPlayerManager<LavalinkPlayer>, PlayersManager<LavalinkPlayer>>();
     hostBuilder.Services.Configure<LavalinkOptions>("Lavalink", hostBuilder.Configuration);
 }
 

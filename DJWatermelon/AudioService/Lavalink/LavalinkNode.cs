@@ -19,7 +19,7 @@ namespace DJWatermelon.AudioService.Lavalink;
 internal sealed class LavalinkNode : IAsyncDisposable
 {
     private readonly ILogger<LavalinkNode> _logger;
-    private readonly PlayersManager<LavalinkPlayer> _playersManager;
+    private readonly PlayersManager _playersManager;
     private readonly IHostEnvironment _hostEnvironment;
     private readonly IConfiguration _configuration;
     private readonly LavalinkOptions _options;
@@ -34,7 +34,7 @@ internal sealed class LavalinkNode : IAsyncDisposable
 
     public LavalinkNode(
         ILogger<LavalinkNode> logger,
-        PlayersManager<LavalinkPlayer> playersManager,
+        PlayersManager playersManager,
         IHostEnvironment hostEnvironment,
         IConfiguration configuration,
         IOptions<LavalinkOptions> options,
@@ -77,7 +77,9 @@ internal sealed class LavalinkNode : IAsyncDisposable
 
     #region Payload's processing
 
-    private async ValueTask ProcessPayloadAsync(IPayload payload, CancellationToken cancellationToken)
+    private async ValueTask ProcessPayloadAsync(
+        IPayload payload, 
+        CancellationToken cancellationToken)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
         cancellationToken.ThrowIfCancellationRequested();
@@ -114,7 +116,7 @@ internal sealed class LavalinkNode : IAsyncDisposable
 
         if (payload is PlayerUpdatePayload playerUpdatePayload)
         {
-            if (_playersManager.TryGet(playerUpdatePayload.GuildId, out LavalinkPlayer? player))
+            if (_playersManager.TryGet(playerUpdatePayload.GuildId, out IPlayer? _))
             {
                 _logger.LogPayloadForInexistentPlayer(playerUpdatePayload.GuildId);
                 return;
@@ -124,13 +126,15 @@ internal sealed class LavalinkNode : IAsyncDisposable
         }
     }
 
-    private async ValueTask ProcessEventAsync(IEventPayload payload, CancellationToken cancellationToken = default)
+    private async ValueTask ProcessEventAsync(
+        IEventPayload payload, 
+        CancellationToken cancellationToken = default)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
         cancellationToken.ThrowIfCancellationRequested();
         ArgumentNullException.ThrowIfNull(payload);
 
-        if (!_playersManager.TryGet(payload.GuildId, out LavalinkPlayer? player))
+        if (!_playersManager.TryGet(payload.GuildId, out IPlayer? player))
         {
             _logger.LogPayloadForInexistentPlayer(payload.GuildId);
             return;
@@ -139,19 +143,19 @@ internal sealed class LavalinkNode : IAsyncDisposable
         ValueTask task = payload switch
         {
             TrackEndEventPayload trackEvent =>
-                ProcessTrackEndEventAsync(player, trackEvent, cancellationToken),
+                ProcessTrackEndEventAsync((LavalinkPlayer)player, trackEvent, cancellationToken),
 
             TrackStartEventPayload trackEvent =>
-                ProcessTrackStartEventAsync(player, trackEvent, cancellationToken),
+                ProcessTrackStartEventAsync((LavalinkPlayer)player, trackEvent, cancellationToken),
 
             TrackStuckEventPayload trackEvent =>
-                ProcessTrackStuckEventAsync(player, trackEvent, cancellationToken),
+                ProcessTrackStuckEventAsync((LavalinkPlayer)player, trackEvent, cancellationToken),
 
             TrackExceptionEventPayload trackEvent =>
-                ProcessTrackExceptionEventAsync(player, trackEvent, cancellationToken),
+                ProcessTrackExceptionEventAsync((LavalinkPlayer)player, trackEvent, cancellationToken),
 
             WebSocketClosedEventPayload closedEvent =>
-                ProcessWebSocketClosedEventAsync(player, closedEvent, cancellationToken),
+                ProcessWebSocketClosedEventAsync((LavalinkPlayer)player, closedEvent, cancellationToken),
 
             _ => ValueTask.CompletedTask,
         };
@@ -175,8 +179,8 @@ internal sealed class LavalinkNode : IAsyncDisposable
     }
 
     private async ValueTask ProcessTrackExceptionEventAsync(
-        LavalinkPlayer player, 
-        TrackExceptionEventPayload trackExceptionEvent, 
+        LavalinkPlayer player,
+        TrackExceptionEventPayload trackExceptionEvent,
         CancellationToken cancellationToken = default)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
@@ -190,8 +194,8 @@ internal sealed class LavalinkNode : IAsyncDisposable
     }
 
     private async ValueTask ProcessTrackStartEventAsync(
-        LavalinkPlayer player, 
-        TrackStartEventPayload trackStartEvent, 
+        LavalinkPlayer player,
+        TrackStartEventPayload trackStartEvent,
         CancellationToken cancellationToken = default)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
@@ -205,8 +209,8 @@ internal sealed class LavalinkNode : IAsyncDisposable
     }
 
     private async ValueTask ProcessTrackStuckEventAsync(
-        LavalinkPlayer player, 
-        TrackStuckEventPayload trackStuckEvent, 
+        LavalinkPlayer player,
+        TrackStuckEventPayload trackStuckEvent,
         CancellationToken cancellationToken = default)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
@@ -220,8 +224,8 @@ internal sealed class LavalinkNode : IAsyncDisposable
     }
 
     private async ValueTask ProcessWebSocketClosedEventAsync(
-        LavalinkPlayer player, 
-        WebSocketClosedEventPayload webSocketClosedEvent, 
+        LavalinkPlayer player,
+        WebSocketClosedEventPayload webSocketClosedEvent,
         CancellationToken cancellationToken)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
@@ -246,7 +250,7 @@ internal sealed class LavalinkNode : IAsyncDisposable
             throw new InvalidOperationException("The node was already started.");
         }
 
-        using CancellationTokenSource cancellationTokenSource = 
+        using CancellationTokenSource cancellationTokenSource =
             CancellationTokenSource.CreateLinkedTokenSource(
                 token1: cancellationToken,
                 token2: _shutdownCancellationToken);

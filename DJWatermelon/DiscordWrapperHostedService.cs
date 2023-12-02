@@ -121,7 +121,7 @@ internal class DiscordWrapperHostedService : BackgroundService
         {
             _logger.LogSlashCommandFailed();
 
-            
+
         }
     }
 }

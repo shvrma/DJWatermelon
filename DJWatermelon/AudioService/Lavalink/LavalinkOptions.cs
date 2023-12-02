@@ -7,6 +7,6 @@ using System.Threading.Tasks;
 namespace DJWatermelon.AudioService.Lavalink;
 
 internal record LavalinkOptions(
-    string WebSocketUri, 
-    string Authorization, 
+    string WebSocketUri,
+    string Authorization,
     string UserId);

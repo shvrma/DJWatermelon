@@ -14,9 +14,9 @@ using YoutubeExplode.Videos.Streams;
 
 namespace DJWatermelon.AudioService;
 
-internal class PlayersManager<PlayerT>: IPlayerManager<PlayerT> where PlayerT : Player
+internal class PlayersManager
 {
-    private readonly ConcurrentDictionary<ulong, PlayerT> _players = new();
+    private readonly ConcurrentDictionary<ulong, IPlayer> _players = new();
     private readonly IHostEnvironment _environment;
 
     public PlayersManager(
@@ -25,6 +25,6 @@ internal class PlayersManager<PlayerT>: IPlayerManager<PlayerT> where PlayerT : 
         _environment = environment;
     }
 
-    public bool TryGet(ulong id, [NotNullWhen(true)] out PlayerT? player)
+    public bool TryGet(ulong id, [NotNullWhen(true)] out IPlayer? player)
         => _players.TryGetValue(id, out player);
 }

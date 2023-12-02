@@ -107,8 +107,8 @@ internal static partial class LoggerExtensions
     public static partial void LogWebSocketConnecttionEstablished(this ILogger logger);
 
     [LoggerMessage(
-        EventId = 12, 
-        EventName = "BadPayloadReceived", 
+        EventId = 12,
+        EventName = "BadPayloadReceived",
         Level = LogLevel.Warning,
         Message = "Bad payload received.")]
     public static partial void LogBadPayloadReceived(this ILogger logger);
