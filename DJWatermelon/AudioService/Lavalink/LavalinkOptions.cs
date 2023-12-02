@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 
 namespace DJWatermelon.AudioService.Lavalink;
 
-internal interface IPayload
-{
-}
+internal record LavalinkOptions(
+    string WebSocketUri, 
+    string Authorization, 
+    string UserId);

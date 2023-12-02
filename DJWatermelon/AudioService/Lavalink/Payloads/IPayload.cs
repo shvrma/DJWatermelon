@@ -4,6 +4,8 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace DJWatermelon.AudioService;
+namespace DJWatermelon.AudioService.Lavalink.Payloads;
 
-internal readonly record struct TrackHandle(string Name, Stream AudioSource);
+internal interface IPayload
+{
+}

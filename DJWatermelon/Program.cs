@@ -4,6 +4,7 @@ using Discord.Rest;
 using Discord.WebSocket;
 using DJWatermelon;
 using DJWatermelon.AudioService;
+using DJWatermelon.AudioService.Lavalink;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -16,7 +17,18 @@ HostApplicationBuilder hostBuilder =
 hostBuilder.Services.AddSingleton<DiscordSocketClient>();
 hostBuilder.Services.AddSingleton<InteractionService>();
 hostBuilder.Services.AddSingleton<YoutubeClient>();
-hostBuilder.Services.AddSingleton<PlayersManager>();
+
+// By default, do all the audio encoding/decoding and streaming
+// functionality on the application host - otherwise - use Lavalink.
+if (hostBuilder.Configuration.GetValue<bool>("UseInternalAudioProcessing"))
+{
+    // TODO.
+}
+else
+{
+    hostBuilder.Services.AddSingleton<IPlayerManager<LavalinkPlayer>, PlayersManager<LavalinkPlayer>>();
+    hostBuilder.Services.Configure<LavalinkOptions>("Lavalink", hostBuilder.Configuration);
+}
 
 hostBuilder.Services.AddSingleton(new DiscordSocketConfig
 {

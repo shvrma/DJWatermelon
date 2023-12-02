@@ -6,7 +6,4 @@ using System.Threading.Tasks;
 
 namespace DJWatermelon.AudioService.Lavalink;
 
-internal interface IEventPayload
-{
-    ulong GuildId { get; init; }
-}
+internal readonly record struct LavalinkTrackHandle(string Title) : ITrackHandle;

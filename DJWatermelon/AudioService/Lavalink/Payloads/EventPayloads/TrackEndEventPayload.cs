@@ -1,16 +1,25 @@
 ﻿using System.Text.Json.Serialization;
 
-namespace DJWatermelon.AudioService.Lavalink.EventPayloads;
+namespace DJWatermelon.AudioService.Lavalink.Payloads.EventPayloads;
 
-public sealed record class TrackEndEventPayload(
+internal sealed record class TrackEndEventPayload(
     [property: JsonRequired]
     [property: JsonPropertyName("guildId")]
     ulong GuildId,
 
     [property: JsonRequired]
     [property: JsonPropertyName("track")]
-    TrackModel Track,
+    LavalinkTrackHandle Track,
 
     [property: JsonRequired]
     [property: JsonPropertyName("reason")]
     TrackEndReason Reason) : IEventPayload;
+
+public enum TrackEndReason : byte
+{
+    Finished,
+    LoadFailed,
+    Stopped,
+    Replaced,
+    Cleanup,
+}
