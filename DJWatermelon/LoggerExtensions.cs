@@ -104,7 +104,7 @@ internal static partial class LoggerExtensions
         EventName = "WebSocketConnecttionEstablished",
         Level = LogLevel.Information,
         Message = "WebSocket connection established.")]
-    public static partial void LogWebSocketConnecttionEstablished(this ILogger logger);
+    public static partial void LogWebSocketConnectionEstablished(this ILogger logger);
 
     [LoggerMessage(
         EventId = 12,
@@ -116,8 +116,8 @@ internal static partial class LoggerExtensions
     [LoggerMessage(
         EventId = 13,
         EventName = "RemoteHostClosedConnection",
-        Level = LogLevel.Information,
-        Message = "Websocket close connection message received.")]
+        Level = LogLevel.Error,
+        Message = "Websocket Close Connection message received.")]
     public static partial void LogRemoteHostClosedConnection(this ILogger logger);
 
     // There.

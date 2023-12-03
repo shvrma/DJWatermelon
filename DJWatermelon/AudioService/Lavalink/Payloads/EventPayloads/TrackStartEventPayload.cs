@@ -3,10 +3,9 @@
 namespace DJWatermelon.AudioService.Lavalink.Payloads.EventPayloads;
 
 internal sealed record class TrackStartEventPayload(
-    [property: JsonRequired]
-    [property: JsonPropertyName("guildId")]
     ulong GuildId,
+    EventTypes EventType,
 
     [property: JsonRequired]
     [property: JsonPropertyName("track")]
-    LavalinkTrackHandle Track) : IEventPayload;
+    LavalinkTrackHandle Track) : EventPayload(GuildId, EventType);

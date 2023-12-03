@@ -18,16 +18,20 @@ hostBuilder.Services.AddSingleton<DiscordSocketClient>();
 hostBuilder.Services.AddSingleton<InteractionService>();
 hostBuilder.Services.AddSingleton<YoutubeClient>();
 
+hostBuilder.Services.AddHostedService<DiscordWrapperHostedService>();
+
 // By default, do all the audio encoding/decoding and streaming
 // functionality on the application host - otherwise - use Lavalink.
-hostBuilder.Services.AddSingleton<PlayersManager>();
 if (hostBuilder.Configuration.GetValue<bool>("UseInternalAudioProcessing"))
 {
     // TODO.
 }
 else
 {
-    hostBuilder.Services.Configure<LavalinkOptions>("Lavalink", hostBuilder.Configuration);
+    hostBuilder.Services.AddHostedService<LavalinkPlayersManager>();
+    hostBuilder.Services.AddSingleton<IPlayersManager, LavalinkPlayersManager>();
+    hostBuilder.Services.Configure<LavalinkOptions>(
+        hostBuilder.Configuration.GetSection(key: nameof(LavalinkOptions)));
 }
 
 hostBuilder.Services.AddSingleton(new DiscordSocketConfig
@@ -39,7 +43,5 @@ hostBuilder.Services.AddSingleton(new InteractionServiceConfig
 {
     UseCompiledLambda = true
 });
-
-hostBuilder.Services.AddHostedService<DiscordWrapperHostedService>();
 
 hostBuilder.Build().Run();

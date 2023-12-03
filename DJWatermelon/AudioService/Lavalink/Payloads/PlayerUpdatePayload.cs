@@ -4,12 +4,17 @@ namespace DJWatermelon.AudioService.Lavalink.Payloads;
 
 public sealed record class PlayerUpdatePayload(
     [property: JsonRequired]
+    [property: JsonPropertyName("op")]
+    [property: JsonConverter(typeof(JsonStringEnumConverter))]
+    OperationTypes OperationType,
+
+    [property: JsonRequired]
     [property: JsonPropertyName("guildId")]
     ulong GuildId,
 
     [property: JsonRequired]
     [property: JsonPropertyName("state")]
-    PlayerStateModel State) : IPayload;
+    PlayerStateModel State) : Payload;
 
 public sealed record class PlayerStateModel(
     [property: JsonRequired]

@@ -6,7 +6,9 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using System;
 using System.Buffers;
+using System.Collections.Concurrent;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Net.WebSockets;
 using System.Text;
 using System.Text.Encodings.Web;
@@ -16,36 +18,33 @@ using System.Threading.Tasks;
 
 namespace DJWatermelon.AudioService.Lavalink;
 
-internal sealed class LavalinkNode : IAsyncDisposable
+internal sealed class LavalinkPlayersManager : IPlayersManager, IAsyncDisposable
 {
-    private readonly ILogger<LavalinkNode> _logger;
-    private readonly PlayersManager _playersManager;
+    private readonly ILogger<LavalinkPlayersManager> _logger;
     private readonly IHostEnvironment _hostEnvironment;
     private readonly IConfiguration _configuration;
     private readonly LavalinkOptions _options;
 
-    private readonly CancellationToken _shutdownCancellationToken;
-
     private readonly Stopwatch _readyStopwatch;
+
+    private readonly ConcurrentDictionary<ulong, IPlayer> _players = new();
 
     private TaskCompletionSource<string> _readyTaskCompletionSource;
     private Task? _executeTask;
     private bool _disposed;
 
-    public LavalinkNode(
-        ILogger<LavalinkNode> logger,
-        PlayersManager playersManager,
+    private CancellationToken _shutdownCancellationToken;
+
+    public LavalinkPlayersManager(
+        ILogger<LavalinkPlayersManager> logger,
         IHostEnvironment hostEnvironment,
         IConfiguration configuration,
-        IOptions<LavalinkOptions> options,
-        CancellationToken shutdownCancellationToken)
+        IOptions<LavalinkOptions> options)
     {
         _logger = logger;
-        _playersManager = playersManager;
         _hostEnvironment = hostEnvironment;
         _configuration = configuration;
         _options = options.Value;
-        _shutdownCancellationToken = shutdownCancellationToken;
 
         _readyTaskCompletionSource = new TaskCompletionSource<string>(
             creationOptions: TaskCreationOptions.RunContinuationsAsynchronously);
@@ -57,7 +56,7 @@ internal sealed class LavalinkNode : IAsyncDisposable
 
     public string? SessionId { get; private set; }
 
-    private static string SerializePayload(IPayload payload)
+    private static string SerializePayload(Payload payload)
     {
         ArgumentNullException.ThrowIfNull(payload);
 
@@ -78,7 +77,7 @@ internal sealed class LavalinkNode : IAsyncDisposable
     #region Payload's processing
 
     private async ValueTask ProcessPayloadAsync(
-        IPayload payload, 
+        Payload payload,
         CancellationToken cancellationToken)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
@@ -108,7 +107,7 @@ internal sealed class LavalinkNode : IAsyncDisposable
             return;
         }
 
-        if (payload is IEventPayload eventPayload)
+        if (payload is EventPayload eventPayload)
         {
             await ProcessEventAsync(eventPayload, cancellationToken).ConfigureAwait(false);
             return;
@@ -116,7 +115,7 @@ internal sealed class LavalinkNode : IAsyncDisposable
 
         if (payload is PlayerUpdatePayload playerUpdatePayload)
         {
-            if (_playersManager.TryGet(playerUpdatePayload.GuildId, out IPlayer? _))
+            if (TryGet(playerUpdatePayload.GuildId, out IPlayer? _))
             {
                 _logger.LogPayloadForInexistentPlayer(playerUpdatePayload.GuildId);
                 return;
@@ -127,14 +126,14 @@ internal sealed class LavalinkNode : IAsyncDisposable
     }
 
     private async ValueTask ProcessEventAsync(
-        IEventPayload payload, 
+        EventPayload payload,
         CancellationToken cancellationToken = default)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
         cancellationToken.ThrowIfCancellationRequested();
         ArgumentNullException.ThrowIfNull(payload);
 
-        if (!_playersManager.TryGet(payload.GuildId, out IPlayer? player))
+        if (!TryGet(payload.GuildId, out IPlayer? player))
         {
             _logger.LogPayloadForInexistentPlayer(payload.GuildId);
             return;
@@ -240,42 +239,10 @@ internal sealed class LavalinkNode : IAsyncDisposable
 
     #endregion
 
-    public async ValueTask RunAsync(CancellationToken cancellationToken = default)
-    {
-        ObjectDisposedException.ThrowIf(_disposed, this);
-        cancellationToken.ThrowIfCancellationRequested();
-
-        if (_executeTask is not null)
-        {
-            throw new InvalidOperationException("The node was already started.");
-        }
-
-        using CancellationTokenSource cancellationTokenSource =
-            CancellationTokenSource.CreateLinkedTokenSource(
-                token1: cancellationToken,
-                token2: _shutdownCancellationToken);
-
-        try
-        {
-            await ReceiveInternalAsync(cancellationTokenSource.Token).ConfigureAwait(false);
-        }
-        catch (Exception exception)
-        {
-            _readyTaskCompletionSource.TrySetException(exception);
-            throw;
-        }
-        finally
-        {
-            _readyTaskCompletionSource.TrySetCanceled(CancellationToken.None);
-        }
-    }
-
     private async Task ReceiveInternalAsync(CancellationToken cancellationToken = default)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
         cancellationToken.ThrowIfCancellationRequested();
-
-        string webSocketUri = _options.WebSocketUri;
 
         _readyStopwatch.Restart();
 
@@ -293,10 +260,12 @@ internal sealed class LavalinkNode : IAsyncDisposable
         webSocket.Options.SetRequestHeader("User-Id", _options.UserId);
         webSocket.Options.SetRequestHeader("Client-Name", "DJWatermelonBot");
 
-        HttpClientHandler httpMessageHandler = new();
-        HttpMessageInvoker httpMessageInvoker = new(httpMessageHandler, disposeHandler: true);
+        using HttpClientHandler httpMessageHandler = new();
+        using HttpMessageInvoker httpMessageInvoker = new(
+            httpMessageHandler, 
+            disposeHandler: true);
 
-        if (Uri.TryCreate(webSocketUri, UriKind.Absolute, out Uri? wsUri))
+        if (Uri.TryCreate(_options.WebSocketUri, UriKind.RelativeOrAbsolute, out Uri? wsUri))
         {
             await webSocket
                 .ConnectAsync(wsUri, httpMessageInvoker, cancellationToken)
@@ -304,10 +273,14 @@ internal sealed class LavalinkNode : IAsyncDisposable
         }
         else
         {
+            if (_hostEnvironment.IsDevelopment())
+            {
+                Debugger.Break();
+            }
             throw new InvalidOperationException("Bad URI passed.");
         }
 
-        _logger.LogWebSocketConnecttionEstablished();
+        _logger.LogWebSocketConnectionEstablished();
 
         // Payload processing.
         Memory<byte> buffer = GC.AllocateUninitializedArray<byte>(4 * 1024);
@@ -322,20 +295,25 @@ internal sealed class LavalinkNode : IAsyncDisposable
                 _logger.LogBadPayloadReceived();
                 continue;
             }
-
+            
             if (receiveResult.MessageType is not WebSocketMessageType.Text)
             {
                 if (receiveResult.MessageType is WebSocketMessageType.Close)
                 {
+                    if (_hostEnvironment.IsDevelopment())
+                    {
+                        Debugger.Break();
+                    }
                     _logger.LogRemoteHostClosedConnection();
-                    return;
+                    throw new InvalidOperationException("Websocket Close Connection message received.");
                 }
-
                 _logger.LogBadPayloadReceived();
                 continue;
             }
 
-            IPayload? payload = JsonSerializer.Deserialize<IPayload>(buffer[..receiveResult.Count].Span);
+            Payload? payload = JsonSerializer.Deserialize<Payload>(
+                buffer[..receiveResult.Count].Span);
+
             if (payload == null)
             {
                 _logger.LogBadPayloadReceived();
@@ -346,7 +324,47 @@ internal sealed class LavalinkNode : IAsyncDisposable
         }
     }
 
-    public async ValueTask DisposeAsync()
+    #region Interface's implementation
+
+    public bool TryGet(ulong id, [NotNullWhen(true)] out IPlayer? player)
+        => _players.TryGetValue(id, out player);
+
+    async Task IHostedService.StartAsync(CancellationToken cancellationToken)
+    {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+        cancellationToken.ThrowIfCancellationRequested();
+
+        if (_executeTask is not null)
+        {
+            throw new InvalidOperationException("The node was already started.");
+        }
+
+        _shutdownCancellationToken = cancellationToken;
+        using CancellationTokenSource cancellationTokenSource =
+            CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+
+        try
+        {
+            await ReceiveInternalAsync(cancellationTokenSource.Token).ConfigureAwait(false);
+        }
+        catch (Exception exception)
+        {
+            _readyTaskCompletionSource.TrySetException(exception);
+            throw;
+        }
+        finally
+        {
+            _readyTaskCompletionSource.TrySetCanceled(CancellationToken.None);
+        }
+    }
+
+    Task IHostedService.StopAsync(CancellationToken cancellationToken)
+    {
+        // TODO.
+        return Task.CompletedTask;
+    }
+
+    async ValueTask IAsyncDisposable.DisposeAsync()
     {
         if (_disposed)
         {
@@ -369,4 +387,6 @@ internal sealed class LavalinkNode : IAsyncDisposable
             }
         }
     }
+
+    #endregion
 }

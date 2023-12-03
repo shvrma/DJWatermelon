@@ -3,9 +3,8 @@
 namespace DJWatermelon.AudioService.Lavalink.Payloads.EventPayloads;
 
 internal sealed record class TrackStuckEventPayload(
-    [property: JsonRequired]
-    [property: JsonPropertyName("guildId")]
     ulong GuildId,
+    EventTypes EventType,
 
     [property: JsonRequired]
     [property: JsonPropertyName("track")]
@@ -13,4 +12,4 @@ internal sealed record class TrackStuckEventPayload(
 
     [property: JsonRequired]
     [property: JsonPropertyName("thresholdMs")]
-    TimeSpan ExceededThreshold) : IEventPayload;
+    TimeSpan ExceededThreshold) : EventPayload(GuildId, EventType);
