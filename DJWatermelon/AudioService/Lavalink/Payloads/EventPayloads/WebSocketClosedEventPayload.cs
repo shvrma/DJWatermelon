@@ -3,9 +3,6 @@
 namespace DJWatermelon.AudioService.Lavalink.Payloads.EventPayloads;
 
 internal sealed record class WebSocketClosedEventPayload(
-    ulong GuildId,
-    EventTypes EventType,
-
     [property: JsonRequired]
     [property: JsonPropertyName("code")]
     int Code,
@@ -16,4 +13,4 @@ internal sealed record class WebSocketClosedEventPayload(
 
     [property: JsonRequired]
     [property: JsonPropertyName("byRemote")]
-    bool WasByRemote) : EventPayload(GuildId, EventType);
+    bool WasByRemote) : EventPayload;

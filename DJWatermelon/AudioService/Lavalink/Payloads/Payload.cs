@@ -16,8 +16,8 @@ public record Payload
 {
     [JsonRequired]
     [JsonPropertyName("op")]
-    [JsonConverter(typeof(JsonStringEnumConverter))]
-    OperationTypes OperationType { get; init; }
+    [JsonConverter(typeof(JsonStringEnumConverter<OperationTypes>))]
+    public OperationTypes OperationType { get; init; }
 }
 
 public enum OperationTypes

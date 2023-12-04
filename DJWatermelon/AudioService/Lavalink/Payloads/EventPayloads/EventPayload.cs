@@ -1,5 +1,4 @@
-﻿using Newtonsoft.Json.Converters;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -14,16 +13,16 @@ namespace DJWatermelon.AudioService.Lavalink.Payloads.EventPayloads;
 [JsonDerivedType(typeof(TrackStartEventPayload), "TrackStartEvent")]
 [JsonDerivedType(typeof(TrackStuckEventPayload), "TrackStuckEvent")]
 [JsonDerivedType(typeof(WebSocketClosedEventPayload), "WebSocketClosedEvent")]
-public record EventPayload(
-    [property: JsonRequired]
-    [property: JsonPropertyName("guildId")]
-    ulong GuildId,
+public record EventPayload : Payload {
+    [JsonRequired]
+    [JsonPropertyName("guildId")]
+    public ulong GuildId;
 
-    [property: JsonRequired]
-    [property: JsonPropertyName("type")]
-    [property: JsonConverter(typeof(StringEnumConverter))]
-    EventTypes EventType
-): Payload;
+    [JsonRequired]
+    [JsonPropertyName("type")]
+    [JsonConverter(typeof(JsonStringEnumConverter<EventTypes>))]
+    public EventTypes EventType;
+}
 
 public enum EventTypes
 {

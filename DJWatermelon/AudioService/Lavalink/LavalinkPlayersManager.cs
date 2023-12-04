@@ -312,7 +312,8 @@ internal sealed class LavalinkPlayersManager : IPlayersManager, IAsyncDisposable
             }
 
             Payload? payload = JsonSerializer.Deserialize<Payload>(
-                buffer[..receiveResult.Count].Span);
+                buffer[..receiveResult.Count].Span,  
+                options: SourceGenerationContext.Default.Payload.Options);
 
             if (payload == null)
             {

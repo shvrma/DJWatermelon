@@ -1,13 +1,9 @@
-﻿using System.Text.Json.Serialization;
+﻿using DJWatermelon.AudioService.Lavalink.Payloads.EventPayloads;
+using System.Text.Json.Serialization;
 
 namespace DJWatermelon.AudioService.Lavalink.Payloads;
 
 public sealed record class PlayerUpdatePayload(
-    [property: JsonRequired]
-    [property: JsonPropertyName("op")]
-    [property: JsonConverter(typeof(JsonStringEnumConverter))]
-    OperationTypes OperationType,
-
     [property: JsonRequired]
     [property: JsonPropertyName("guildId")]
     ulong GuildId,
