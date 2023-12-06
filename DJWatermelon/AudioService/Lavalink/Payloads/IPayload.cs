@@ -1,18 +1,10 @@
 ﻿using DJWatermelon.AudioService.Lavalink.Payloads.EventPayloads;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using System.Text.Json.Serialization;
-using System.Threading.Tasks;
 
 namespace DJWatermelon.AudioService.Lavalink.Payloads;
 
-[JsonPolymorphic(TypeDiscriminatorPropertyName = "op")]
-[JsonDerivedType(typeof(ReadyPayload), "ready")]
-[JsonDerivedType(typeof(PlayerUpdatePayload), "playerUpdate")]
-[JsonDerivedType(typeof(EventPayload), "event")]
-public record Payload
+[JsonConverter(typeof(PayloadJsonConverter))]
+public interface IPayload
 {
     [JsonRequired]
     [JsonPropertyName("op")]
@@ -22,6 +14,7 @@ public record Payload
 
 public enum OperationTypes
 {
+    Unknown,
     Ready,
     PlayerUpdate,
     Stats,

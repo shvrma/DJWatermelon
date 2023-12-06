@@ -4,7 +4,6 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using System;
 using System.Buffers;
 using System.Collections.Concurrent;
 using System.Diagnostics;
@@ -13,8 +12,6 @@ using System.Net.WebSockets;
 using System.Text;
 using System.Text.Encodings.Web;
 using System.Text.Json;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace DJWatermelon.AudioService.Lavalink;
 
@@ -56,7 +53,7 @@ internal sealed class LavalinkPlayersManager : IPlayersManager, IAsyncDisposable
 
     public string? SessionId { get; private set; }
 
-    private static string SerializePayload(Payload payload)
+    private static string SerializePayload(IPayload payload)
     {
         ArgumentNullException.ThrowIfNull(payload);
 
@@ -77,7 +74,7 @@ internal sealed class LavalinkPlayersManager : IPlayersManager, IAsyncDisposable
     #region Payload's processing
 
     private async ValueTask ProcessPayloadAsync(
-        Payload payload,
+        IPayload payload,
         CancellationToken cancellationToken)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
@@ -262,7 +259,7 @@ internal sealed class LavalinkPlayersManager : IPlayersManager, IAsyncDisposable
 
         using HttpClientHandler httpMessageHandler = new();
         using HttpMessageInvoker httpMessageInvoker = new(
-            httpMessageHandler, 
+            httpMessageHandler,
             disposeHandler: true);
 
         if (Uri.TryCreate(_options.WebSocketUri, UriKind.RelativeOrAbsolute, out Uri? wsUri))
@@ -295,7 +292,7 @@ internal sealed class LavalinkPlayersManager : IPlayersManager, IAsyncDisposable
                 _logger.LogBadPayloadReceived();
                 continue;
             }
-            
+
             if (receiveResult.MessageType is not WebSocketMessageType.Text)
             {
                 if (receiveResult.MessageType is WebSocketMessageType.Close)
@@ -311,9 +308,9 @@ internal sealed class LavalinkPlayersManager : IPlayersManager, IAsyncDisposable
                 continue;
             }
 
-            Payload? payload = JsonSerializer.Deserialize<Payload>(
-                buffer[..receiveResult.Count].Span,  
-                options: SourceGenerationContext.Default.Payload.Options);
+            IPayload? payload = JsonSerializer.Deserialize<IPayload>(
+                buffer[..receiveResult.Count].Span,
+                options: SourceGenerationContext.Default.IPayload.Options);
 
             if (payload == null)
             {

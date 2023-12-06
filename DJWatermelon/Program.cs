@@ -1,6 +1,5 @@
 ﻿global using Discord;
 using Discord.Interactions;
-using Discord.Rest;
 using Discord.WebSocket;
 using DJWatermelon;
 using DJWatermelon.AudioService;
@@ -8,7 +7,6 @@ using DJWatermelon.AudioService.Lavalink;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using System.Reflection;
 using YoutubeExplode;
 
 HostApplicationBuilder hostBuilder =
