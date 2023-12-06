@@ -12,7 +12,7 @@ using System.Threading.Tasks;
 namespace DJWatermelon;
 
 [JsonSourceGenerationOptions(WriteIndented = true)]
-[JsonSerializable(typeof(Payload))]
+[JsonSerializable(typeof(IPayload))]
 [JsonSerializable(typeof(PlayerUpdatePayload))]
 [JsonSerializable(typeof(ReadyPayload))]
 

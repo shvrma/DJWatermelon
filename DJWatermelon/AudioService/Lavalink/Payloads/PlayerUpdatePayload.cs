@@ -10,7 +10,10 @@ public sealed record class PlayerUpdatePayload(
 
     [property: JsonRequired]
     [property: JsonPropertyName("state")]
-    PlayerStateModel State) : Payload;
+    PlayerStateModel State) : IPayload
+{
+    public OperationTypes OperationType { get; init; }
+}
 
 public sealed record class PlayerStateModel(
     [property: JsonRequired]

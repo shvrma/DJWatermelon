@@ -12,7 +12,7 @@ namespace DJWatermelon.AudioService.Lavalink.Payloads;
 [JsonDerivedType(typeof(ReadyPayload), "ready")]
 [JsonDerivedType(typeof(PlayerUpdatePayload), "playerUpdate")]
 [JsonDerivedType(typeof(EventPayload), "event")]
-public record Payload
+public interface IPayload
 {
     [JsonRequired]
     [JsonPropertyName("op")]

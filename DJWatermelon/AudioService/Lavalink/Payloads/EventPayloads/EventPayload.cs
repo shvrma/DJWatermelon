@@ -13,22 +13,23 @@ namespace DJWatermelon.AudioService.Lavalink.Payloads.EventPayloads;
 [JsonDerivedType(typeof(TrackStartEventPayload), "TrackStartEvent")]
 [JsonDerivedType(typeof(TrackStuckEventPayload), "TrackStuckEvent")]
 [JsonDerivedType(typeof(WebSocketClosedEventPayload), "WebSocketClosedEvent")]
-public record EventPayload : Payload {
-    [JsonRequired]
-    [JsonPropertyName("guildId")]
-    public ulong GuildId;
-
+public record EventPayload(
+    [property: JsonRequired]
+    [property: JsonPropertyName("guildId")]
+    ulong GuildId) : IPayload
+{
     [JsonRequired]
     [JsonPropertyName("type")]
     [JsonConverter(typeof(JsonStringEnumConverter<EventTypes>))]
-    public EventTypes EventType;
+    public EventTypes EventType { get; init; }
+    public OperationTypes OperationType { get; init; }
 }
 
 public enum EventTypes
 {
-    TrackStartEvent, 
-    TrackEndEvent, 
-    TrackExceptionEvent, 
-    TrackStuckEvent, 
+    TrackStartEvent,
+    TrackEndEvent,
+    TrackExceptionEvent,
+    TrackStuckEvent,
     WebSocketClosedEvent
 }
