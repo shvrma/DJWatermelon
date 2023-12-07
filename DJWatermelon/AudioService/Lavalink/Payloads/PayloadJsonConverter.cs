@@ -1,6 +1,7 @@
 ﻿using DJWatermelon.AudioService.Lavalink.Payloads.EventPayloads;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using System.Threading.Tasks;
 
 namespace DJWatermelon.AudioService.Lavalink.Payloads;
 
@@ -38,7 +39,7 @@ internal class PayloadJsonConverter : JsonConverter<IPayload>
                     lineNumber: -1,
                     bytePositionInLine: reader.BytesConsumed);
             }
-
+            
             // Check whatever the property is our type determinator.
             if (propertyName != "op")
             {
