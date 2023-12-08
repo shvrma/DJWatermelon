@@ -26,9 +26,10 @@ if (hostBuilder.Configuration.GetValue<bool>("UseInternalAudioProcessing"))
 }
 else
 {
+    hostBuilder.Services.AddHostedService<LavalinkHostedService>();
     hostBuilder.Services.AddSingleton<IPlayersManager, LavalinkPlayersManager>();
     hostBuilder.Services.Configure<LavalinkOptions>(
-        hostBuilder.Configuration.GetSection(key: nameof(LavalinkOptions)));
+    hostBuilder.Configuration.GetSection(key: nameof(LavalinkOptions)));
 }
 
 hostBuilder.Services.AddSingleton(new DiscordSocketConfig
