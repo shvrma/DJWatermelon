@@ -22,10 +22,11 @@ hostBuilder.Services.AddHostedService<DiscordWrapperHostedService>();
 // functionality on the application host - otherwise - use Lavalink.
 if (hostBuilder.Configuration.GetValue<bool>("UseInternalAudioProcessing"))
 {
-    throw new NotImplementedException("Internal auditory processing has not yet been implemented.");
+    // TODO.
 }
 else
 {
+    hostBuilder.Services.AddHostedService<LavalinkPlayersManager>();
     hostBuilder.Services.AddSingleton<IPlayersManager, LavalinkPlayersManager>();
     hostBuilder.Services.Configure<LavalinkOptions>(
         hostBuilder.Configuration.GetSection(key: nameof(LavalinkOptions)));
