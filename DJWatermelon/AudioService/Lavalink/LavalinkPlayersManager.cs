@@ -1,10 +1,9 @@
-﻿using DJWatermelon.AudioService.Lavalink.Payloads;
-using DJWatermelon.AudioService.Lavalink.Payloads.EventPayloads;
+﻿using DJWatermelon.AudioService.Lavalink.Models;
+using DJWatermelon.AudioService.Lavalink.Models.EventPayloads;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using System;
 using System.Buffers;
 using System.Collections.Concurrent;
 using System.Diagnostics;
@@ -13,8 +12,6 @@ using System.Net.WebSockets;
 using System.Text;
 using System.Text.Encodings.Web;
 using System.Text.Json;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace DJWatermelon.AudioService.Lavalink;
 
@@ -22,10 +19,7 @@ internal sealed class LavalinkPlayersManager : IPlayersManager, IAsyncDisposable
 {
     private readonly ILogger<LavalinkPlayersManager> _logger;
     private readonly IHostEnvironment _hostEnvironment;
-    private readonly IConfiguration _configuration;
     private readonly LavalinkOptions _options;
-
-    private readonly Stopwatch _readyStopwatch;
 
     private readonly ConcurrentDictionary<ulong, IPlayer> _players = new();
 
@@ -38,55 +32,35 @@ internal sealed class LavalinkPlayersManager : IPlayersManager, IAsyncDisposable
     public LavalinkPlayersManager(
         ILogger<LavalinkPlayersManager> logger,
         IHostEnvironment hostEnvironment,
-        IConfiguration configuration,
         IOptions<LavalinkOptions> options)
     {
         _logger = logger;
         _hostEnvironment = hostEnvironment;
-        _configuration = configuration;
         _options = options.Value;
 
         _readyTaskCompletionSource = new TaskCompletionSource<string>(
             creationOptions: TaskCreationOptions.RunContinuationsAsynchronously);
-
-        _readyStopwatch = new Stopwatch();
     }
 
     public bool IsReady => _readyTaskCompletionSource.Task.IsCompletedSuccessfully;
 
     public string? SessionId { get; private set; }
 
-    private static string SerializePayload(Payload payload)
-    {
-        ArgumentNullException.ThrowIfNull(payload);
-
-        JsonWriterOptions jsonWriterOptions = new()
-        {
-            Indented = true,
-            Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
-        };
-
-        ArrayBufferWriter<byte> arrayBufferWriter = new();
-        Utf8JsonWriter utf8JsonWriter = new(arrayBufferWriter, jsonWriterOptions);
-
-        JsonSerializer.Serialize(utf8JsonWriter, payload);
-
-        return Encoding.UTF8.GetString(arrayBufferWriter.WrittenSpan);
-    }
+    #region WebSocket
 
     #region Payload's processing
 
     private async ValueTask ProcessPayloadAsync(
-        Payload payload,
+        IPayload payload,
         CancellationToken cancellationToken)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
         cancellationToken.ThrowIfCancellationRequested();
         ArgumentNullException.ThrowIfNull(payload);
 
-        if (_logger.IsEnabled(LogLevel.Trace))
+        if (_logger.IsEnabled(LogLevel.Debug))
         {
-            _logger.LogReceivedPayload(SerializePayload(payload));
+            _logger.LogReceivedPayload();
         }
 
         if (payload is ReadyPayload readyPayload)
@@ -101,7 +75,7 @@ internal sealed class LavalinkPlayersManager : IPlayersManager, IAsyncDisposable
             _logger.LogLavalinkReady();
         }
 
-        if (SessionId is null)
+        if (string.IsNullOrEmpty(SessionId))
         {
             _logger.LogPayloadReceivedBeforeReady();
             return;
@@ -142,28 +116,28 @@ internal sealed class LavalinkPlayersManager : IPlayersManager, IAsyncDisposable
         ValueTask task = payload switch
         {
             TrackEndEventPayload trackEvent =>
-                ProcessTrackEndEventAsync((LavalinkPlayer)player, trackEvent, cancellationToken),
+                ProcessTrackEndEventAsync(player, trackEvent, cancellationToken),
 
             TrackStartEventPayload trackEvent =>
-                ProcessTrackStartEventAsync((LavalinkPlayer)player, trackEvent, cancellationToken),
+                ProcessTrackStartEventAsync(player, trackEvent, cancellationToken),
 
             TrackStuckEventPayload trackEvent =>
-                ProcessTrackStuckEventAsync((LavalinkPlayer)player, trackEvent, cancellationToken),
+                ProcessTrackStuckEventAsync(player, trackEvent, cancellationToken),
 
             TrackExceptionEventPayload trackEvent =>
-                ProcessTrackExceptionEventAsync((LavalinkPlayer)player, trackEvent, cancellationToken),
+                ProcessTrackExceptionEventAsync(player, trackEvent, cancellationToken),
 
             WebSocketClosedEventPayload closedEvent =>
-                ProcessWebSocketClosedEventAsync((LavalinkPlayer)player, closedEvent, cancellationToken),
+                ProcessWebSocketClosedEventAsync(player, closedEvent, cancellationToken),
 
-            _ => ValueTask.CompletedTask,
+            _ => throw new InvalidOperationException(),
         };
 
         await task.ConfigureAwait(false);
     }
 
     private async ValueTask ProcessTrackEndEventAsync(
-        LavalinkPlayer player,
+        IPlayer player,
         TrackEndEventPayload trackEndEvent,
         CancellationToken cancellationToken = default)
     {
@@ -178,7 +152,7 @@ internal sealed class LavalinkPlayersManager : IPlayersManager, IAsyncDisposable
     }
 
     private async ValueTask ProcessTrackExceptionEventAsync(
-        LavalinkPlayer player,
+        IPlayer player,
         TrackExceptionEventPayload trackExceptionEvent,
         CancellationToken cancellationToken = default)
     {
@@ -193,7 +167,7 @@ internal sealed class LavalinkPlayersManager : IPlayersManager, IAsyncDisposable
     }
 
     private async ValueTask ProcessTrackStartEventAsync(
-        LavalinkPlayer player,
+        IPlayer player,
         TrackStartEventPayload trackStartEvent,
         CancellationToken cancellationToken = default)
     {
@@ -208,7 +182,7 @@ internal sealed class LavalinkPlayersManager : IPlayersManager, IAsyncDisposable
     }
 
     private async ValueTask ProcessTrackStuckEventAsync(
-        LavalinkPlayer player,
+        IPlayer player,
         TrackStuckEventPayload trackStuckEvent,
         CancellationToken cancellationToken = default)
     {
@@ -223,7 +197,7 @@ internal sealed class LavalinkPlayersManager : IPlayersManager, IAsyncDisposable
     }
 
     private async ValueTask ProcessWebSocketClosedEventAsync(
-        LavalinkPlayer player,
+        IPlayer player,
         WebSocketClosedEventPayload webSocketClosedEvent,
         CancellationToken cancellationToken)
     {
@@ -244,8 +218,6 @@ internal sealed class LavalinkPlayersManager : IPlayersManager, IAsyncDisposable
         ObjectDisposedException.ThrowIf(_disposed, this);
         cancellationToken.ThrowIfCancellationRequested();
 
-        _readyStopwatch.Restart();
-
         if (_readyTaskCompletionSource.Task.IsCompleted)
         {
             // Initiate reconnect.
@@ -258,14 +230,17 @@ internal sealed class LavalinkPlayersManager : IPlayersManager, IAsyncDisposable
 
         webSocket.Options.SetRequestHeader("Authorization", _options.Authorization);
         webSocket.Options.SetRequestHeader("User-Id", _options.UserId);
-        webSocket.Options.SetRequestHeader("Client-Name", "DJWatermelonBot");
+        webSocket.Options.SetRequestHeader("Client-Name", "DJWatermelonBot/0");
 
         using HttpClientHandler httpMessageHandler = new();
         using HttpMessageInvoker httpMessageInvoker = new(
-            httpMessageHandler, 
+            httpMessageHandler,
             disposeHandler: true);
 
-        if (Uri.TryCreate(_options.WebSocketUri, UriKind.RelativeOrAbsolute, out Uri? wsUri))
+        if (Uri.TryCreate(
+            new Uri(_options.WebSocketUri), 
+            new Uri("/v4/websocket"), 
+            out Uri? wsUri))
         {
             await webSocket
                 .ConnectAsync(wsUri, httpMessageInvoker, cancellationToken)
@@ -295,7 +270,7 @@ internal sealed class LavalinkPlayersManager : IPlayersManager, IAsyncDisposable
                 _logger.LogBadPayloadReceived();
                 continue;
             }
-            
+
             if (receiveResult.MessageType is not WebSocketMessageType.Text)
             {
                 if (receiveResult.MessageType is WebSocketMessageType.Close)
@@ -305,14 +280,23 @@ internal sealed class LavalinkPlayersManager : IPlayersManager, IAsyncDisposable
                         Debugger.Break();
                     }
                     _logger.LogRemoteHostClosedConnection();
-                    throw new InvalidOperationException("Websocket Close Connection message received.");
+                    throw new InvalidOperationException(
+                        "Websocket Close Connection message received.");
                 }
+
                 _logger.LogBadPayloadReceived();
                 continue;
             }
 
-            Payload? payload = JsonSerializer.Deserialize<Payload>(
-                buffer[..receiveResult.Count].Span);
+            if (_hostEnvironment.IsDevelopment() && _logger.IsEnabled(LogLevel.Debug))
+            {
+                _logger.LogPayloadText(
+                    text: Encoding.UTF8.GetString(buffer[..receiveResult.Count].Span));
+            }
+
+            IPayload? payload = JsonSerializer.Deserialize(
+                buffer[..receiveResult.Count].Span,
+                PayloadsSourceGenerationContext.Default.IPayload);
 
             if (payload == null)
             {
@@ -323,6 +307,14 @@ internal sealed class LavalinkPlayersManager : IPlayersManager, IAsyncDisposable
             await ProcessPayloadAsync(payload, cancellationToken).ConfigureAwait(false);
         }
     }
+
+    #endregion
+
+    #region REST
+
+
+
+    #endregion
 
     #region Interface's implementation
 

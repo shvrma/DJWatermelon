@@ -1,10 +1,9 @@
 ﻿using System.Text.Json.Serialization;
 
-namespace DJWatermelon.AudioService.Lavalink.Payloads.EventPayloads;
+namespace DJWatermelon.AudioService.Lavalink.Models.EventPayloads;
 
-internal sealed record class TrackStuckEventPayload(
+internal sealed record TrackStuckEventPayload(
     ulong GuildId,
-    EventTypes EventType,
 
     [property: JsonRequired]
     [property: JsonPropertyName("track")]
@@ -12,4 +11,4 @@ internal sealed record class TrackStuckEventPayload(
 
     [property: JsonRequired]
     [property: JsonPropertyName("thresholdMs")]
-    TimeSpan ExceededThreshold) : EventPayload(GuildId, EventType);
+    int ExceededThreshold) : EventPayload(GuildId);

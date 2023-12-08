@@ -1,10 +1,5 @@
 ﻿using Discord.WebSocket;
 using Microsoft.Extensions.Logging;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace DJWatermelon;
 
@@ -74,47 +69,55 @@ internal static partial class LoggerExtensions
         EventId = 7,
         EventName = "ReceivedPayload",
         Level = LogLevel.Trace,
-        Message = "A new payload from Lavalink was received.\n\n{serializedPayload}",
+        Message = "A new payload from Lavalink was received.",
         SkipEnabledCheck = true)]
-    public static partial void LogReceivedPayload(this ILogger logger, string serializedPayload);
+    public static partial void LogReceivedPayload(this ILogger logger);
 
     [LoggerMessage(
         EventId = 8,
+        EventName = "",
+        Level = LogLevel.Debug,
+        Message = "Payload's received text: \n\n{text}",
+        SkipEnabledCheck = true)]
+    public static partial void LogPayloadText(this ILogger logger, string text);
+
+    [LoggerMessage(
+        EventId = 9,
         EventName = "MultipleReadyPayloadsReceived",
         Level = LogLevel.Warning,
         Message = "Multiple \"Ready\" payloads were received from the Lavalink server. ")]
     public static partial void LogMultipleReadyPayloadsReceived(this ILogger logger);
 
     [LoggerMessage(
-        EventId = 9,
+        EventId = 10,
         EventName = "LavalinkReady",
         Level = LogLevel.Information,
         Message = "The Lavalink wrapper is ready.")]
     public static partial void LogLavalinkReady(this ILogger logger);
 
     [LoggerMessage(
-        EventId = 10,
+        EventId = 11,
         EventName = "PayloadReceivedBeforeReady",
         Level = LogLevel.Warning,
         Message = "Payload received before Ready payload received.")]
     public static partial void LogPayloadReceivedBeforeReady(this ILogger logger);
 
     [LoggerMessage(
-        EventId = 11,
+        EventId = 12,
         EventName = "WebSocketConnecttionEstablished",
         Level = LogLevel.Information,
         Message = "WebSocket connection established.")]
     public static partial void LogWebSocketConnectionEstablished(this ILogger logger);
 
     [LoggerMessage(
-        EventId = 12,
+        EventId = 13,
         EventName = "BadPayloadReceived",
         Level = LogLevel.Warning,
         Message = "Bad payload received.")]
     public static partial void LogBadPayloadReceived(this ILogger logger);
 
     [LoggerMessage(
-        EventId = 13,
+        EventId = 14,
         EventName = "RemoteHostClosedConnection",
         Level = LogLevel.Error,
         Message = "Websocket Close Connection message received.")]
@@ -123,7 +126,7 @@ internal static partial class LoggerExtensions
     // There.
 
     [LoggerMessage(
-        EventId = 14,
+        EventId = 15,
         EventName = "LavalinkDisposed",
         Level = LogLevel.Information,
         Message = "The Lavalink wrapper was disposed of.")]
