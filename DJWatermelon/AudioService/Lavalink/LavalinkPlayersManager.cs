@@ -46,6 +46,35 @@ internal sealed class LavalinkPlayersManager : IPlayersManager, IAsyncDisposable
 
     public string? SessionId { get; private set; }
 
+    public async Task StartAsync(CancellationToken cancellationToken)
+    {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+        cancellationToken.ThrowIfCancellationRequested();
+
+        if (_executeTask is not null)
+        {
+            throw new InvalidOperationException("The node was already started.");
+        }
+
+        _shutdownCancellationToken = cancellationToken;
+        using CancellationTokenSource cancellationTokenSource =
+            CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+
+        try
+        {
+            await ReceiveInternalAsync(cancellationTokenSource.Token).ConfigureAwait(false);
+        }
+        catch (Exception exception)
+        {
+            _readyTaskCompletionSource.TrySetException(exception);
+            throw;
+        }
+        finally
+        {
+            _readyTaskCompletionSource.TrySetCanceled(CancellationToken.None);
+        }
+    }
+
     #region WebSocket
 
     #region Payload's processing
@@ -316,45 +345,8 @@ internal sealed class LavalinkPlayersManager : IPlayersManager, IAsyncDisposable
 
     #endregion
 
-    #region Interface's implementation
-
     public bool TryGet(ulong id, [NotNullWhen(true)] out IPlayer? player)
         => _players.TryGetValue(id, out player);
-
-    async Task IHostedService.StartAsync(CancellationToken cancellationToken)
-    {
-        ObjectDisposedException.ThrowIf(_disposed, this);
-        cancellationToken.ThrowIfCancellationRequested();
-
-        if (_executeTask is not null)
-        {
-            throw new InvalidOperationException("The node was already started.");
-        }
-
-        _shutdownCancellationToken = cancellationToken;
-        using CancellationTokenSource cancellationTokenSource =
-            CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-
-        try
-        {
-            await ReceiveInternalAsync(cancellationTokenSource.Token).ConfigureAwait(false);
-        }
-        catch (Exception exception)
-        {
-            _readyTaskCompletionSource.TrySetException(exception);
-            throw;
-        }
-        finally
-        {
-            _readyTaskCompletionSource.TrySetCanceled(CancellationToken.None);
-        }
-    }
-
-    Task IHostedService.StopAsync(CancellationToken cancellationToken)
-    {
-        // TODO.
-        return Task.CompletedTask;
-    }
 
     async ValueTask IAsyncDisposable.DisposeAsync()
     {
@@ -379,6 +371,4 @@ internal sealed class LavalinkPlayersManager : IPlayersManager, IAsyncDisposable
             }
         }
     }
-
-    #endregion
 }
