@@ -228,14 +228,17 @@ internal sealed class LavalinkPlayersManager : IPlayersManager, IAsyncDisposable
 
         webSocket.Options.SetRequestHeader("Authorization", _options.Authorization);
         webSocket.Options.SetRequestHeader("User-Id", _options.UserId);
-        webSocket.Options.SetRequestHeader("Client-Name", "DJWatermelonBot");
+        webSocket.Options.SetRequestHeader("Client-Name", "DJWatermelonBot/0");
 
         using HttpClientHandler httpMessageHandler = new();
         using HttpMessageInvoker httpMessageInvoker = new(
             httpMessageHandler,
             disposeHandler: true);
 
-        if (Uri.TryCreate(_options.WebSocketUri, UriKind.RelativeOrAbsolute, out Uri? wsUri))
+        if (Uri.TryCreate(
+            new Uri(_options.WebSocketUri), 
+            new Uri("/v4/websocket"), 
+            out Uri? wsUri))
         {
             await webSocket
                 .ConnectAsync(wsUri, httpMessageInvoker, cancellationToken)

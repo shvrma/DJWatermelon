@@ -90,11 +90,11 @@ internal class PayloadJsonConverter : JsonConverter<IPayload>
                 ref copyReader,
                 options: sourceGenOptions),
 
-            "event" => JsonSerializer.Deserialize<EventPayload>(
+            "stats" => JsonSerializer.Deserialize<StatisticsPayload>(
                 ref copyReader,
                 options: sourceGenOptions),
 
-            "stats" => JsonSerializer.Deserialize<StatisticsPayload>(
+            "event" => JsonSerializer.Deserialize<EventPayload>(
                 ref copyReader,
                 options: sourceGenOptions),
 

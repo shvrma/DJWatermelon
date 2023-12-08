@@ -11,4 +11,4 @@ internal sealed record class TrackStuckEventPayload(
 
     [property: JsonRequired]
     [property: JsonPropertyName("thresholdMs")]
-    TimeSpan ExceededThreshold) : EventPayload(GuildId);
+    int ExceededThreshold) : EventPayload(GuildId);

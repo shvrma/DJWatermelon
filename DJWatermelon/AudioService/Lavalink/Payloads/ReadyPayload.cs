@@ -9,7 +9,4 @@ public sealed record class ReadyPayload(
 
     [property: JsonRequired]
     [property: JsonPropertyName("sessionId")]
-    string SessionId) : IPayload
-{
-    public OperationTypes OperationType { get; init; }
-}
+    string SessionId) : IPayload;

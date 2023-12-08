@@ -18,8 +18,7 @@ public sealed record class StatisticsPayload(
 
     [property: JsonRequired]
     [property: JsonPropertyName("uptime")]
-    // TimeSpan.
-    long Uptime,
+    int Uptime,
 
     [property: JsonRequired]
     [property: JsonPropertyName("memory")]
@@ -30,27 +29,24 @@ public sealed record class StatisticsPayload(
     ServerProcessorUsageStatisticsModel ProcessorUsage,
 
     [property: JsonPropertyName("frameStats")]
-    ServerFrameStatisticsModel? FrameStatistics) : IPayload
-{
-    public OperationTypes OperationType { get; init; }
-}
+    ServerFrameStatisticsModel? FrameStatistics) : IPayload;
 
 public sealed record class ServerMemoryUsageStatisticsModel(
     [property: JsonRequired]
     [property: JsonPropertyName("free")]
-    long FreeMemory,
+    int FreeMemory,
 
     [property: JsonRequired]
     [property: JsonPropertyName("used")]
-    long UsedMemory,
+    int UsedMemory,
 
     [property: JsonRequired]
     [property: JsonPropertyName("allocated")]
-    long AllocatedMemory,
+    int AllocatedMemory,
 
     [property: JsonRequired]
     [property: JsonPropertyName("reservable")]
-    long ReservableMemory);
+    int ReservableMemory);
 
 public sealed record class ServerProcessorUsageStatisticsModel(
     [property: JsonRequired]

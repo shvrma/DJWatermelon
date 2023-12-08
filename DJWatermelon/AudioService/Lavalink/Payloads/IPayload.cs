@@ -8,12 +8,3 @@ public interface IPayload
 {
 
 }
-
-public enum OperationTypes
-{
-    Unknown,
-    Ready,
-    PlayerUpdate,
-    Stats,
-    Event
-}
