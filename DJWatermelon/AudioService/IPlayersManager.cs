@@ -3,7 +3,7 @@ using System.Diagnostics.CodeAnalysis;
 
 namespace DJWatermelon.AudioService;
 
-internal interface IPlayersManager : IHostedService, IDisposable, IAsyncDisposable
+internal interface IPlayersManager : IDisposable, IAsyncDisposable
 {
     IPlayer CreatePlayer(long guilId);
 
