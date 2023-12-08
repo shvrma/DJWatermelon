@@ -1,4 +1,5 @@
 ﻿using DJWatermelon.AudioService.Lavalink.Payloads.EventPayloads;
+using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Threading.Tasks;
@@ -22,13 +23,31 @@ internal class PayloadJsonConverter : JsonConverter<IPayload>
         }
 
         Utf8JsonReader copyReader = reader;
-        OperationTypes operationType = OperationTypes.Unknown;
+        string? operationType = default;
+
         while (reader.Read())
         {
+            // Go thru only on the highest level.
+            if (reader.TokenType == JsonTokenType.EndObject)
+            {
+                if (reader.CurrentDepth == 0)
+                {
+                    break;
+                }
+                else
+                {
+                    continue;
+                }
+            }
+
             // Get the key.
             if (reader.TokenType != JsonTokenType.PropertyName)
             {
-                throw new JsonException();
+                throw new JsonException(
+                    "Property name expected while reading through JSON.",
+                    path: string.Empty,
+                    lineNumber: -1,
+                    bytePositionInLine: reader.BytesConsumed);
             }
             string? propertyName = reader.GetString();
             if (string.IsNullOrEmpty(propertyName))
@@ -39,39 +58,47 @@ internal class PayloadJsonConverter : JsonConverter<IPayload>
                     lineNumber: -1,
                     bytePositionInLine: reader.BytesConsumed);
             }
-            
+
             // Check whatever the property is our type determinator.
-            if (propertyName != "op")
+            // Skip all the non-type-determinators properties.
+            reader.Read();
+            if (propertyName == "op")
             {
-                // Skip all the non-type-determinators properties.
-                reader.Read();
-            }
-            else
-            {
-                _ = Enum.TryParse(reader.GetString(), out operationType);
+                operationType = reader.GetString();
+
+                // Read till the end of the object.
+                while (reader.Read())
+                {
+
+                }
                 break;
             }
         }
 
+        JsonSerializerOptions sourceGenOptions = new(options)
+        {
+            TypeInfoResolver = PayloadsSourceGenerationContext.Default
+        };
 
         return operationType switch
         {
-            OperationTypes.Ready 
-                => JsonSerializer.Deserialize<ReadyPayload>(ref copyReader, options),
+            "ready" => JsonSerializer.Deserialize<ReadyPayload>(
+                ref copyReader,
+                options: sourceGenOptions),
 
-            OperationTypes.PlayerUpdate 
-                => JsonSerializer.Deserialize<PlayerUpdatePayload>(ref copyReader, options),
+            "playerUpdate" => JsonSerializer.Deserialize<PlayerUpdatePayload>(
+                ref copyReader,
+                options: sourceGenOptions),
 
-            OperationTypes.Event 
-                => JsonSerializer.Deserialize<EventPayload>(ref copyReader, options),
+            "event" => JsonSerializer.Deserialize<EventPayload>(
+                ref copyReader,
+                options: sourceGenOptions),
 
-            OperationTypes.Stats
-                => default,
+            "stats" => JsonSerializer.Deserialize<StatisticsPayload>(
+                ref copyReader,
+                options: sourceGenOptions),
 
-            OperationTypes.Unknown
-                => default,
-
-            _ => throw new InvalidOperationException("Unallowed value for Operation Types enum.")
+            _ => throw new InvalidOperationException("Unallowed value for OperationTypes.")
         };
     }
 

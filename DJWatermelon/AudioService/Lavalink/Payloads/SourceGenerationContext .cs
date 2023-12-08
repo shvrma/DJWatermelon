@@ -4,10 +4,11 @@ using System.Text.Json.Serialization;
 
 namespace DJWatermelon;
 
-[JsonSourceGenerationOptions(WriteIndented = true)]
+[JsonSourceGenerationOptions(WriteIndented = true, UseStringEnumConverter = true)]
 [JsonSerializable(typeof(IPayload))]
-[JsonSerializable(typeof(PlayerUpdatePayload))]
 [JsonSerializable(typeof(ReadyPayload))]
+[JsonSerializable(typeof(PlayerUpdatePayload))]
+[JsonSerializable(typeof(StatisticsPayload))]
 
 [JsonSerializable(typeof(EventPayload))]
 [JsonSerializable(typeof(TrackEndEventPayload))]
@@ -15,6 +16,6 @@ namespace DJWatermelon;
 [JsonSerializable(typeof(TrackStartEventPayload))]
 [JsonSerializable(typeof(TrackStuckEventPayload))]
 [JsonSerializable(typeof(WebSocketClosedEventPayload))]
-internal partial class SourceGenerationContext : JsonSerializerContext
+internal partial class PayloadsSourceGenerationContext : JsonSerializerContext
 {
 }

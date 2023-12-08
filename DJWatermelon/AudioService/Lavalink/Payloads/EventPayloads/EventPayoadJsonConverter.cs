@@ -21,9 +21,23 @@ internal class EventPayoadJsonConverter : JsonConverter<EventPayload>
         }
 
         Utf8JsonReader copyReader = reader;
-        EventTypes eventType = EventTypes.Unknown;
+        string? eventType = default;
+
         while (reader.Read())
         {
+            // Go thru only on the highest level.
+            if (reader.TokenType == JsonTokenType.EndObject)
+            {
+                if (reader.CurrentDepth == 0)
+                {
+                    break;
+                }
+                else
+                {
+                    continue;
+                }
+            }
+
             // Get the key.
             if (reader.TokenType != JsonTokenType.PropertyName)
             {
@@ -44,40 +58,54 @@ internal class EventPayoadJsonConverter : JsonConverter<EventPayload>
             }
 
             // Check whatever the property is our type determinator.
-            if (propertyName != "eventType")
+            // Skip all the non-type-determinators properties.
+            reader.Read();
+            if (propertyName == "op")
             {
-                // Skip all the non-type-determinators properties.
-                reader.Read();
-            }
-            else
-            {
-                _ = Enum.TryParse(reader.GetString(), out eventType);
+                eventType = reader.GetString();
+
+                // Read till the end of the object.
+                while (reader.Read())
+                {
+
+                }
                 break;
             }
         }
 
+        JsonSerializerOptions sourceGenOptions = new(options)
+        {
+            TypeInfoResolver = PayloadsSourceGenerationContext.Default
+        };
 
         return eventType switch
         {
-            EventTypes.TrackStartEvent
-                => JsonSerializer.Deserialize<TrackStartEventPayload>(ref copyReader, options),
+            "TrackStartEvent"
+                => JsonSerializer.Deserialize<TrackStartEventPayload>(
+                    ref copyReader,
+                    sourceGenOptions),
 
-            EventTypes.TrackEndEvent
-                => JsonSerializer.Deserialize<TrackEndEventPayload>(ref copyReader, options),
+            "TrackEndEvent"
+                => JsonSerializer.Deserialize<TrackEndEventPayload>(
+                    ref copyReader,
+                    sourceGenOptions),
 
-            EventTypes.TrackStuckEvent
-                => JsonSerializer.Deserialize<TrackStuckEventPayload>(ref copyReader, options),
+            "TrackStuckEvent"   
+                => JsonSerializer.Deserialize<TrackStuckEventPayload>(
+                    ref copyReader,
+                    sourceGenOptions),
 
-            EventTypes.TrackExceptionEvent
-                => JsonSerializer.Deserialize<TrackExceptionEventPayload>(ref copyReader, options),
+            "TrackExceptionEvent"
+                => JsonSerializer.Deserialize<TrackExceptionEventPayload>(
+                    ref copyReader,
+                    sourceGenOptions),
 
-            EventTypes.WebSocketClosedEvent
-                => JsonSerializer.Deserialize<WebSocketClosedEventPayload>(ref copyReader, options),
+            "WebSocketClosedEvent"
+                => JsonSerializer.Deserialize<WebSocketClosedEventPayload>(
+                    ref copyReader,
+                    sourceGenOptions),
 
-            EventTypes.Unknown
-                => default,
-
-            _ => throw new InvalidOperationException("Unallowed value for EventTypes enum.")
+            _ => throw new InvalidOperationException("Unallowed value for EventType.")
         };
     }
 
