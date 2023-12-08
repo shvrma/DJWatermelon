@@ -3,7 +3,15 @@ using System.Diagnostics.CodeAnalysis;
 
 namespace DJWatermelon.AudioService;
 
-internal interface IPlayersManager : IHostedService
+internal interface IPlayersManager : IHostedService, IDisposable, IAsyncDisposable
 {
-    bool TryGet(ulong id, [NotNullWhen(true)] out IPlayer? player);
+    IPlayer CreatePlayer(long guilId);
+
+    bool TryGetPlayer(ulong id, [NotNullWhen(true)] out IPlayer? player);
+
+    IEnumerable<IPlayer> GetPlayers();
+
+    void DestroyPlayer(ulong guilId);
+
+    Task<IEnumerable<ITrackHandle>> SearchForTrackAsync(string prompt);
 }
