@@ -1,5 +1,5 @@
-﻿using DJWatermelon.AudioService.Lavalink.Payloads;
-using DJWatermelon.AudioService.Lavalink.Payloads.EventPayloads;
+﻿using DJWatermelon.AudioService.Lavalink.Models;
+using DJWatermelon.AudioService.Lavalink.Models.EventPayloads;
 using System.Text.Json.Serialization;
 
 namespace DJWatermelon;

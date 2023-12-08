@@ -6,7 +6,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 
-namespace DJWatermelon.AudioService.Lavalink.Payloads.EventPayloads;
+namespace DJWatermelon.AudioService.Lavalink.Models.EventPayloads;
 
 internal class EventPayoadJsonConverter : JsonConverter<EventPayload>
 {
@@ -90,7 +90,7 @@ internal class EventPayoadJsonConverter : JsonConverter<EventPayload>
                     ref copyReader,
                     sourceGenOptions),
 
-            "TrackStuckEvent"   
+            "TrackStuckEvent"
                 => JsonSerializer.Deserialize<TrackStuckEventPayload>(
                     ref copyReader,
                     sourceGenOptions),

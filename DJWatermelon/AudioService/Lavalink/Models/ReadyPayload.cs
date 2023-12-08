@@ -1,15 +1,12 @@
 ﻿using System.Text.Json.Serialization;
 
-namespace DJWatermelon.AudioService.Lavalink.Payloads;
+namespace DJWatermelon.AudioService.Lavalink.Models;
 
-public sealed record class ReadyPayload(
+public sealed record ReadyPayload(
     [property: JsonRequired]
     [property: JsonPropertyName("resumed")]
     bool SessionResumed,
 
     [property: JsonRequired]
     [property: JsonPropertyName("sessionId")]
-    string SessionId) : IPayload
-{
-    public OperationTypes OperationType { get; init; }
-}
+    string SessionId) : IPayload;

@@ -1,26 +1,23 @@
 ﻿using System.Text.Json.Serialization;
 
-namespace DJWatermelon.AudioService.Lavalink.Payloads;
+namespace DJWatermelon.AudioService.Lavalink.Models;
 
-public sealed record class PlayerUpdatePayload(
+public sealed record PlayerUpdatePayload(
     [property: JsonRequired]
     [property: JsonPropertyName("guildId")]
     ulong GuildId,
 
     [property: JsonRequired]
     [property: JsonPropertyName("state")]
-    PlayerStateModel State) : IPayload
-{
-    public OperationTypes OperationType { get; init; }
-}
+    PlayerStateModel State) : IPayload;
 
 public sealed record class PlayerStateModel(
     [property: JsonRequired]
     [property: JsonPropertyName("time")]
-    DateTimeOffset AbsoluteTimestamp,
+    int AbsoluteTimestamp,
 
     [property: JsonPropertyName("position")]
-    TimeSpan Position,
+    int Position,
 
     [property: JsonRequired]
     [property: JsonPropertyName("connected")]
@@ -28,4 +25,4 @@ public sealed record class PlayerStateModel(
 
     [property: JsonRequired]
     [property: JsonPropertyName("ping")]
-    TimeSpan? Latency);
+    int Latency);

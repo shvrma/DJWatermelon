@@ -1,10 +1,10 @@
-﻿using DJWatermelon.AudioService.Lavalink.Payloads.EventPayloads;
+﻿using DJWatermelon.AudioService.Lavalink.Models.EventPayloads;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 
-namespace DJWatermelon.AudioService.Lavalink.Payloads;
+namespace DJWatermelon.AudioService.Lavalink.Models;
 
 internal class PayloadJsonConverter : JsonConverter<IPayload>
 {
@@ -90,11 +90,11 @@ internal class PayloadJsonConverter : JsonConverter<IPayload>
                 ref copyReader,
                 options: sourceGenOptions),
 
-            "event" => JsonSerializer.Deserialize<EventPayload>(
+            "stats" => JsonSerializer.Deserialize<StatisticsPayload>(
                 ref copyReader,
                 options: sourceGenOptions),
 
-            "stats" => JsonSerializer.Deserialize<StatisticsPayload>(
+            "event" => JsonSerializer.Deserialize<EventPayload>(
                 ref copyReader,
                 options: sourceGenOptions),
 

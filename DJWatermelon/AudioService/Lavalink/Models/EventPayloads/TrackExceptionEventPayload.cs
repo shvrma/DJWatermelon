@@ -1,8 +1,8 @@
 ﻿using System.Text.Json.Serialization;
 
-namespace DJWatermelon.AudioService.Lavalink.Payloads.EventPayloads;
+namespace DJWatermelon.AudioService.Lavalink.Models.EventPayloads;
 
-internal sealed record class TrackExceptionEventPayload(
+internal sealed record TrackExceptionEventPayload(
     ulong GuildId,
 
     [property: JsonRequired]
@@ -13,7 +13,7 @@ internal sealed record class TrackExceptionEventPayload(
     [property: JsonPropertyName("exception")]
     TrackExceptionModel Exception) : EventPayload(GuildId);
 
-internal sealed record class TrackExceptionModel(
+internal sealed record TrackExceptionModel(
     [property: JsonRequired]
     [property: JsonPropertyName("message")]
     string Message,
