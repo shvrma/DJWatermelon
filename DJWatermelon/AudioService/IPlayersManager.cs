@@ -5,6 +5,8 @@ namespace DJWatermelon.AudioService;
 
 internal interface IPlayersManager : IDisposable, IAsyncDisposable
 {
+    void Init();
+
     IPlayer CreatePlayer(long guilId);
 
     bool TryGetPlayer(ulong id, [NotNullWhen(true)] out IPlayer? player);
