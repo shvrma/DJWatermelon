@@ -5,13 +5,15 @@ namespace DJWatermelon.AudioService;
 
 internal interface IPlayersManager : IDisposable, IAsyncDisposable
 {
-    IPlayer CreatePlayer(long guilId);
+    Task InitAsync();
+
+    Task<IPlayer> CreatePlayerAsync(long guilId);
+
+    Task DestroyPlayerAsync(ulong guilId);
 
     bool TryGetPlayer(ulong id, [NotNullWhen(true)] out IPlayer? player);
 
     IEnumerable<IPlayer> GetPlayers();
-
-    void DestroyPlayer(ulong guilId);
 
     Task<IEnumerable<ITrackHandle>> SearchForTrackAsync(string prompt);
 }
