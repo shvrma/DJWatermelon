@@ -1,6 +1,6 @@
 ﻿namespace DJWatermelon.AudioService;
 
-internal interface IPlayer : IDisposable, IAsyncDisposable
+public interface IPlayer : IDisposable, IAsyncDisposable
 {
     LinkedList<ITrackHandle> Queue { get; }
 

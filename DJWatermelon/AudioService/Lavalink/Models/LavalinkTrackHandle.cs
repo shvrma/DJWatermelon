@@ -1,9 +1,14 @@
 ﻿using System.Text.Json.Serialization;
 
-namespace DJWatermelon.AudioService.Lavalink;
+namespace DJWatermelon.AudioService.Lavalink.Models;
 
-internal readonly record struct LavalinkTrackHandle(
+public readonly record struct LavalinkTrackHandle(
+    [property: JsonRequired]
+    [property: JsonPropertyName("encoded")]
     string Encoded,
+
+    [property: JsonRequired]
+    [property: JsonPropertyName("info")]
     LavalinkTrackInfo Info) : ITrackHandle
 {
     public string Title { get => Info.Title; init => throw new NotSupportedException(); }
@@ -29,9 +34,9 @@ public readonly record struct LavalinkTrackInfo(
     [property: JsonRequired]
     [property: JsonPropertyName("isStream")]
     bool IsStream,
-    
+
     [property: JsonRequired]
-    [property: JsonPropertyName("position")] 
+    [property: JsonPropertyName("position")]
     int CurrentPosition,
 
     [property: JsonRequired]

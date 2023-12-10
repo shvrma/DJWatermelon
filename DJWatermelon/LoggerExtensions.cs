@@ -118,15 +118,53 @@ internal static partial class LoggerExtensions
 
     [LoggerMessage(
         EventId = 14,
+        EventName = "BufferOutOfRange",
+        Level = LogLevel.Error,
+        Message = "Message buffer out of free space.")]
+    public static partial void LogBufferOutOfRange(this ILogger logger);
+
+    [LoggerMessage(
+        EventId = 15,
         EventName = "RemoteHostClosedConnection",
         Level = LogLevel.Error,
         Message = "Websocket Close Connection message received.")]
     public static partial void LogRemoteHostClosedConnection(this ILogger logger);
 
+    [LoggerMessage(
+        EventId = 16,
+        EventName = "VoiceServerUpdate",
+        Level = LogLevel.Debug,
+        Message = "Discord voice server updated for guild <{guildName}>.\n\n{state}",
+        SkipEnabledCheck = true)]
+    public static partial void LogVoiceServerUpdate(
+        this ILogger logger, 
+        string guildName, 
+        string state);
+
+    [LoggerMessage(
+        EventId = 17,
+        EventName = "VoiceStateUpdated",
+        Level = LogLevel.Debug,
+        Message = "Voice state updated for user <{userName}> in voice channel <{guildName}>.\n\n<{voiceChannelBefore}> -> <{voiceChannel}>",
+        SkipEnabledCheck = true)]
+    public static partial void LogVoiceStateUpdated(
+        this ILogger logger, 
+        string userName,
+        string guildName,
+        string voiceChannelBefore,
+        string voiceChannel);
+
+    [LoggerMessage(
+        EventId = 18,
+        EventName = "CreatingPlayer",
+        Level = LogLevel.Debug,
+        Message = "Begin creating a player for a guild with id: <{guildId}>.")]
+    public static partial void LogCreatingPlayer(this ILogger logger, ulong guildId);
+
     // There.
 
     [LoggerMessage(
-        EventId = 15,
+        EventId = 19,
         EventName = "LavalinkDisposed",
         Level = LogLevel.Information,
         Message = "The Lavalink wrapper was disposed of.")]

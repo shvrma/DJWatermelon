@@ -1,19 +1,19 @@
-﻿using Microsoft.Extensions.Hosting;
+﻿using Discord.WebSocket;
+using Microsoft.Extensions.Hosting;
 using System.Diagnostics.CodeAnalysis;
 
 namespace DJWatermelon.AudioService;
 
-internal interface IPlayersManager : IDisposable, IAsyncDisposable
+public interface IPlayersManager : IDisposable, IAsyncDisposable
 {
-    Task InitAsync();
+    Task InitAsync(CancellationToken cancellationToken);
+    bool IsReady { get; }
 
-    Task<IPlayer> CreatePlayerAsync(long guilId);
+    Task<IPlayer> CreatePlayerAsync(ulong guildId, CancellationToken cancellationToken);
+    Task DestroyPlayerAsync(ulong guildId, CancellationToken cancellationToken);
 
-    Task DestroyPlayerAsync(ulong guilId);
-
-    bool TryGetPlayer(ulong id, [NotNullWhen(true)] out IPlayer? player);
-
+    bool TryGetPlayer(ulong guilid, [NotNullWhen(true)] out IPlayer? player);
     IEnumerable<IPlayer> GetPlayers();
 
-    Task<IEnumerable<ITrackHandle>> SearchForTrackAsync(string prompt);
+    Task<IEnumerable<ITrackHandle>> SearchForTrackAsync(string prompt, CancellationToken cancellationToken);
 }

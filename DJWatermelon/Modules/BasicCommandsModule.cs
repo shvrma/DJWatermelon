@@ -1,10 +1,21 @@
 ﻿using Discord.Audio;
 using Discord.Interactions;
+using DJWatermelon.AudioService;
+using System.Diagnostics;
 
 namespace DJWatermelon.Modules;
 
 public class BasicCommandsModule : InteractionModuleBase
 {
+    private readonly IPlayersManager _playersManager;
+    private readonly CancellationToken _cancellationToken;
+
+    public BasicCommandsModule(
+        IPlayersManager playersManager)
+    {
+        _playersManager = playersManager;
+    }
+
     [SlashCommand(
         "ping",
         "Try pinging the bot to see if you get a response.")]
@@ -27,9 +38,16 @@ public class BasicCommandsModule : InteractionModuleBase
             return;
         }
 
-        IAudioClient audioClient = await channel.ConnectAsync();
-        await RespondAsync($"Successfully joined {channel.Mention}.");
+        await channel.ConnectAsync(external: true).ConfigureAwait(false);
+        try
+        {
+            await _playersManager.CreatePlayerAsync(Context.Guild.Id, CancellationToken.None);
+        }
+        catch (Exception)
+        {
+            Debugger.Break();
+        }
 
-        audioClient.CreateOpusStream();
+        await RespondAsync($"Successfully joined {channel.Mention}.");
     }
 }

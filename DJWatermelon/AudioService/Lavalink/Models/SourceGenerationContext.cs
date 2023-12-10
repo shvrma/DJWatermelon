@@ -1,5 +1,6 @@
-﻿using DJWatermelon.AudioService.Lavalink.Models;
-using DJWatermelon.AudioService.Lavalink.Models.EventPayloads;
+﻿using DJWatermelon.AudioService.Lavalink.Models.REST;
+using DJWatermelon.AudioService.Lavalink.Models.WebSocket;
+using DJWatermelon.AudioService.Lavalink.Models.WebSocket.EventPayloads;
 using System.Text.Json.Serialization;
 
 namespace DJWatermelon;
@@ -16,6 +17,18 @@ namespace DJWatermelon;
 [JsonSerializable(typeof(TrackStartEventPayload))]
 [JsonSerializable(typeof(TrackStuckEventPayload))]
 [JsonSerializable(typeof(WebSocketClosedEventPayload))]
+
+[JsonSerializable(typeof(IRESTResponceModel))]
+[JsonSerializable(typeof(ErrorModel))]
+[JsonSerializable(typeof(PlayerModel))]
+[JsonSerializable(typeof(PlayerUpdateModel))]
+[JsonSerializable(typeof(PlayerTrackUpateModel))]
+[JsonSerializable(typeof(VoiceStateModel))]
+
+[JsonSerializable(typeof(TrackLoadResultModel))]
+[JsonSerializable(typeof(PlaylistModel))]
+[JsonSerializable(typeof(PlaylistInfoModel))]
+[JsonSerializable(typeof(LavalinkInfoModel))]
 internal partial class PayloadsSourceGenerationContext : JsonSerializerContext
 {
 }

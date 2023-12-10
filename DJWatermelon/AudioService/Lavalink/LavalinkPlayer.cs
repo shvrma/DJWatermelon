@@ -1,17 +1,27 @@
 ﻿using Discord.Audio;
+using Refit;
 
 namespace DJWatermelon.AudioService.Lavalink;
 
 internal class LavalinkPlayer : IPlayer
 {
-    public LavalinkPlayer(IAudioClient audioClient)
-    {
+    private readonly ILavalinkAPI _lavalinkAPI;
+    private ulong _guildId;
+    private string _lavalinkSessionId;
 
+    public LavalinkPlayer(
+        ulong guildId, 
+        string lavalinkSessionId,
+        ILavalinkAPI lavalinkAPI)
+    {
+        _guildId = guildId;
+        _lavalinkSessionId = lavalinkSessionId;
+        _lavalinkAPI = lavalinkAPI;
     }
 
-    public LinkedList<ITrackHandle> Queue => throw new NotImplementedException();
+    public LinkedList<ITrackHandle> Queue { get; } = new();
 
-    public LinkedListNode<ITrackHandle>? CurrentTrack => throw new NotImplementedException();
+    public LinkedListNode<ITrackHandle>? CurrentTrack { get; } = default;
 
     public void Dispose()
     {

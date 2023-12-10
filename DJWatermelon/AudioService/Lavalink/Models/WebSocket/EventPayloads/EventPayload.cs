@@ -1,7 +1,6 @@
-﻿using DJWatermelon.AudioService.Lavalink.Models;
-using System.Text.Json.Serialization;
+﻿using System.Text.Json.Serialization;
 
-namespace DJWatermelon.AudioService.Lavalink.Models.EventPayloads;
+namespace DJWatermelon.AudioService.Lavalink.Models.WebSocket.EventPayloads;
 
 [JsonConverter(typeof(EventPayoadJsonConverter))]
 public record EventPayload(

@@ -1,29 +1,27 @@
-﻿using DJWatermelon.AudioService.Lavalink.Models.EventPayloads;
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 
-namespace DJWatermelon.AudioService.Lavalink.Models;
+namespace DJWatermelon.AudioService.Lavalink.Models.WebSocket.EventPayloads;
 
-internal class PayloadJsonConverter : JsonConverter<IPayload>
+public sealed class EventPayoadJsonConverter : JsonConverter<EventPayload>
 {
-    public override IPayload? Read(
+    public override EventPayload? Read(
         ref Utf8JsonReader reader,
         Type typeToConvert,
         JsonSerializerOptions options)
     {
         if (reader.TokenType != JsonTokenType.StartObject)
         {
-            throw new JsonException(
-                "Property name expected while reading through JSON.",
-                path: string.Empty,
-                lineNumber: -1,
-                bytePositionInLine: reader.BytesConsumed);
+            throw new JsonException("JSON reading started not from the very beginning.");
         }
 
         Utf8JsonReader copyReader = reader;
-        string? operationType = default;
+        string? eventType = default;
 
         while (reader.Read())
         {
@@ -64,7 +62,7 @@ internal class PayloadJsonConverter : JsonConverter<IPayload>
             reader.Read();
             if (propertyName == "op")
             {
-                operationType = reader.GetString();
+                eventType = reader.GetString();
 
                 // Read till the end of the object.
                 while (reader.Read())
@@ -80,29 +78,38 @@ internal class PayloadJsonConverter : JsonConverter<IPayload>
             TypeInfoResolver = PayloadsSourceGenerationContext.Default
         };
 
-        return operationType switch
+        return eventType switch
         {
-            "ready" => JsonSerializer.Deserialize<ReadyPayload>(
-                ref copyReader,
-                options: sourceGenOptions),
+            "TrackStartEvent"
+                => JsonSerializer.Deserialize<TrackStartEventPayload>(
+                    ref copyReader,
+                    sourceGenOptions),
 
-            "playerUpdate" => JsonSerializer.Deserialize<PlayerUpdatePayload>(
-                ref copyReader,
-                options: sourceGenOptions),
+            "TrackEndEvent"
+                => JsonSerializer.Deserialize<TrackEndEventPayload>(
+                    ref copyReader,
+                    sourceGenOptions),
 
-            "stats" => JsonSerializer.Deserialize<StatisticsPayload>(
-                ref copyReader,
-                options: sourceGenOptions),
+            "TrackStuckEvent"
+                => JsonSerializer.Deserialize<TrackStuckEventPayload>(
+                    ref copyReader,
+                    sourceGenOptions),
 
-            "event" => JsonSerializer.Deserialize<EventPayload>(
-                ref copyReader,
-                options: sourceGenOptions),
+            "TrackExceptionEvent"
+                => JsonSerializer.Deserialize<TrackExceptionEventPayload>(
+                    ref copyReader,
+                    sourceGenOptions),
 
-            _ => throw new InvalidOperationException("Unallowed value for OperationTypes.")
+            "WebSocketClosedEvent"
+                => JsonSerializer.Deserialize<WebSocketClosedEventPayload>(
+                    ref copyReader,
+                    sourceGenOptions),
+
+            _ => throw new InvalidOperationException("Unallowed value for EventType.")
         };
     }
 
-    public override void Write(Utf8JsonWriter writer, IPayload value, JsonSerializerOptions options)
+    public override void Write(Utf8JsonWriter writer, EventPayload value, JsonSerializerOptions options)
     {
         throw new NotSupportedException();
     }
