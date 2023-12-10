@@ -1,8 +1,8 @@
 ﻿using System.Text.Json.Serialization;
 
-namespace DJWatermelon.AudioService.Lavalink.Models.EventPayloads;
+namespace DJWatermelon.AudioService.Lavalink.Models.WebSocket.EventPayloads;
 
-internal sealed record TrackEndEventPayload(
+public sealed record TrackEndEventPayload(
     ulong GuildId,
 
     [property: JsonRequired]

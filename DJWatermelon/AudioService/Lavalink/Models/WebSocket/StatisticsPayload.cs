@@ -5,20 +5,20 @@ using System.Text;
 using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 
-namespace DJWatermelon.AudioService.Lavalink.Models;
+namespace DJWatermelon.AudioService.Lavalink.Models.WebSocket;
 
 public sealed record StatisticsPayload(
     [property: JsonRequired]
     [property: JsonPropertyName("players")]
-    int ConnectedPlayers,
+    ushort ConnectedPlayers,
 
     [property: JsonRequired]
     [property: JsonPropertyName("playingPlayers")]
-    int PlayingPlayers,
+    ushort PlayingPlayers,
 
     [property: JsonRequired]
     [property: JsonPropertyName("uptime")]
-    int Uptime,
+    ulong Uptime,
 
     [property: JsonRequired]
     [property: JsonPropertyName("memory")]
@@ -34,24 +34,24 @@ public sealed record StatisticsPayload(
 public sealed record class ServerMemoryUsageStatisticsModel(
     [property: JsonRequired]
     [property: JsonPropertyName("free")]
-    int FreeMemory,
+    ulong FreeMemory,
 
     [property: JsonRequired]
     [property: JsonPropertyName("used")]
-    int UsedMemory,
+    ulong UsedMemory,
 
     [property: JsonRequired]
     [property: JsonPropertyName("allocated")]
-    int AllocatedMemory,
+    ulong AllocatedMemory,
 
     [property: JsonRequired]
     [property: JsonPropertyName("reservable")]
-    int ReservableMemory);
+    ulong ReservableMemory);
 
 public sealed record class ServerProcessorUsageStatisticsModel(
     [property: JsonRequired]
     [property: JsonPropertyName("cores")]
-    int CoreCount,
+    ushort CoreCount,
 
     [property: JsonRequired]
     [property: JsonPropertyName("systemLoad")]

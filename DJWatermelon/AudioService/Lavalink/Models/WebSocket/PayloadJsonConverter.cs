@@ -1,27 +1,29 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
+﻿using DJWatermelon.AudioService.Lavalink.Models.WebSocket.EventPayloads;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 
-namespace DJWatermelon.AudioService.Lavalink.Models.EventPayloads;
+namespace DJWatermelon.AudioService.Lavalink.Models.WebSocket;
 
-internal class EventPayoadJsonConverter : JsonConverter<EventPayload>
+public sealed class PayloadJsonConverter : JsonConverter<IPayload>
 {
-    public override EventPayload? Read(
+    public override IPayload? Read(
         ref Utf8JsonReader reader,
         Type typeToConvert,
         JsonSerializerOptions options)
     {
         if (reader.TokenType != JsonTokenType.StartObject)
         {
-            throw new JsonException("JSON reading started not from the very beginning.");
+            throw new JsonException(
+                "Property name expected while reading through JSON.",
+                path: string.Empty,
+                lineNumber: -1,
+                bytePositionInLine: reader.BytesConsumed);
         }
 
         Utf8JsonReader copyReader = reader;
-        string? eventType = default;
+        string? operationType = default;
 
         while (reader.Read())
         {
@@ -62,7 +64,7 @@ internal class EventPayoadJsonConverter : JsonConverter<EventPayload>
             reader.Read();
             if (propertyName == "op")
             {
-                eventType = reader.GetString();
+                operationType = reader.GetString();
 
                 // Read till the end of the object.
                 while (reader.Read())
@@ -75,41 +77,32 @@ internal class EventPayoadJsonConverter : JsonConverter<EventPayload>
 
         JsonSerializerOptions sourceGenOptions = new(options)
         {
-            TypeInfoResolver = PayloadsSourceGenerationContext.Default
+            TypeInfoResolver = LavalinkModelsSourceGenerationContext.Default
         };
 
-        return eventType switch
+        return operationType switch
         {
-            "TrackStartEvent"
-                => JsonSerializer.Deserialize<TrackStartEventPayload>(
-                    ref copyReader,
-                    sourceGenOptions),
+            "ready" => JsonSerializer.Deserialize<ReadyPayload>(
+                ref copyReader,
+                options: sourceGenOptions),
 
-            "TrackEndEvent"
-                => JsonSerializer.Deserialize<TrackEndEventPayload>(
-                    ref copyReader,
-                    sourceGenOptions),
+            "playerUpdate" => JsonSerializer.Deserialize<PlayerUpdatePayload>(
+                ref copyReader,
+                options: sourceGenOptions),
 
-            "TrackStuckEvent"
-                => JsonSerializer.Deserialize<TrackStuckEventPayload>(
-                    ref copyReader,
-                    sourceGenOptions),
+            "stats" => JsonSerializer.Deserialize<StatisticsPayload>(
+                ref copyReader,
+                options: sourceGenOptions),
 
-            "TrackExceptionEvent"
-                => JsonSerializer.Deserialize<TrackExceptionEventPayload>(
-                    ref copyReader,
-                    sourceGenOptions),
+            "event" => JsonSerializer.Deserialize<EventPayload>(
+                ref copyReader,
+                options: sourceGenOptions),
 
-            "WebSocketClosedEvent"
-                => JsonSerializer.Deserialize<WebSocketClosedEventPayload>(
-                    ref copyReader,
-                    sourceGenOptions),
-
-            _ => throw new InvalidOperationException("Unallowed value for EventType.")
+            _ => throw new InvalidOperationException("Unallowed value for OperationTypes.")
         };
     }
 
-    public override void Write(Utf8JsonWriter writer, EventPayload value, JsonSerializerOptions options)
+    public override void Write(Utf8JsonWriter writer, IPayload value, JsonSerializerOptions options)
     {
         throw new NotSupportedException();
     }

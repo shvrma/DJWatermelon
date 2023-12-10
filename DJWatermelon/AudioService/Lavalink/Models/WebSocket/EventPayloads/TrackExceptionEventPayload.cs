@@ -1,8 +1,8 @@
 ﻿using System.Text.Json.Serialization;
 
-namespace DJWatermelon.AudioService.Lavalink.Models.EventPayloads;
+namespace DJWatermelon.AudioService.Lavalink.Models.WebSocket.EventPayloads;
 
-internal sealed record TrackExceptionEventPayload(
+public sealed record TrackExceptionEventPayload(
     ulong GuildId,
 
     [property: JsonRequired]
@@ -11,9 +11,9 @@ internal sealed record TrackExceptionEventPayload(
 
     [property: JsonRequired]
     [property: JsonPropertyName("exception")]
-    TrackExceptionModel Exception) : EventPayload(GuildId);
+    LavalinkException Exception) : EventPayload(GuildId);
 
-internal sealed record TrackExceptionModel(
+public sealed record LavalinkException(
     [property: JsonRequired]
     [property: JsonPropertyName("message")]
     string Message,
@@ -27,7 +27,7 @@ internal sealed record TrackExceptionModel(
     [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     string? Cause);
 
-internal enum ExceptionSeverity : byte
+public enum ExceptionSeverity : byte
 {
     Common,
     Suspicious,

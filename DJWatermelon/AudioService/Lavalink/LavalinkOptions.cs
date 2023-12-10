@@ -1,15 +1,17 @@
-﻿using System.Diagnostics.CodeAnalysis;
+﻿using System.ComponentModel.DataAnnotations;
+using System.Diagnostics.CodeAnalysis;
 
 namespace DJWatermelon.AudioService.Lavalink;
 
 internal class LavalinkOptions
 {
     [NotNull]
-    public string? WebSocketUri { get; set; }
+    [DataType(DataType.Url)]
+    public string? RemoteHostName { get; set; }
+
+    [NotNull]
+    public int? Port { get; set; }
 
     [NotNull]
     public string? Authorization { get; set; }
-
-    [NotNull]
-    public string? UserId { get; set; }
 }

@@ -5,13 +5,13 @@ using System.Text;
 using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 
-namespace DJWatermelon.AudioService.Lavalink.Models;
+namespace DJWatermelon.AudioService.Lavalink.Models.REST;
 
-public sealed record PlaylistInfo(
+public sealed record PlaylistInfoModel(
     [property: JsonRequired]
     [property: JsonPropertyName("name")]
     string Name,
 
     [property: JsonRequired]
     [property: JsonPropertyName("selectedTrack")]
-    int SelectedTrack);
+    short SelectedTrack) : RESTResponceModel;

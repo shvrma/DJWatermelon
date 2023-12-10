@@ -1,6 +1,6 @@
 ﻿using System.Text.Json.Serialization;
 
-namespace DJWatermelon.AudioService.Lavalink.Models;
+namespace DJWatermelon.AudioService.Lavalink.Models.WebSocket;
 
 public sealed record ReadyPayload(
     [property: JsonRequired]

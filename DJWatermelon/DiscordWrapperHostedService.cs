@@ -1,5 +1,7 @@
-﻿using Discord.Interactions;
+﻿using Discord;
+using Discord.Interactions;
 using Discord.WebSocket;
+using DJWatermelon.AudioService;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -16,6 +18,7 @@ internal class DiscordWrapperHostedService : BackgroundService
     private readonly IConfiguration _config;
     private readonly IHostEnvironment _hostEnvironment;
     private readonly IServiceProvider _serviceProvider;
+    private readonly IPlayersManager _playersManager;
 
     public DiscordWrapperHostedService(
         DiscordSocketClient client,
@@ -24,7 +27,8 @@ internal class DiscordWrapperHostedService : BackgroundService
         ILogger<DiscordSocketClient> discordLogger,
         IConfiguration config,
         IHostEnvironment hostEnvironment,
-        IServiceProvider serviceProvider)
+        IServiceProvider serviceProvider,
+        IPlayersManager playersManager)
     {
         _discordClient = client;
         _logger = logger;
@@ -33,6 +37,7 @@ internal class DiscordWrapperHostedService : BackgroundService
         _interactionService = interactionService;
         _hostEnvironment = hostEnvironment;
         _serviceProvider = serviceProvider;
+        _playersManager = playersManager;
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -59,13 +64,13 @@ internal class DiscordWrapperHostedService : BackgroundService
         await _discordClient.StartAsync();
 
         // Expicticly wait until the wrapper is ready as it initializes on another thread.
-        bool isDiscordWrapperReady = false;
+        using AutoResetEvent readyEvent = new(false);
         _discordClient.Ready += () =>
         {
-            isDiscordWrapperReady = true;
+            readyEvent.Set();
             return Task.CompletedTask;
         };
-        SpinWait.SpinUntil(() => isDiscordWrapperReady);
+        readyEvent.WaitOne();
 
         await _discordClient.SetGameAsync("/help", type: ActivityType.Listening);
 
@@ -73,7 +78,7 @@ internal class DiscordWrapperHostedService : BackgroundService
 
         // Register bot's commands.
         await _interactionService.AddModulesAsync(Assembly.GetExecutingAssembly(), _serviceProvider);
-
+        
         string? debugGuildIdStr = _config["TestingGuildId"];
         if (_hostEnvironment.IsDevelopment() && !string.IsNullOrWhiteSpace(debugGuildIdStr))
         {
@@ -92,25 +97,17 @@ internal class DiscordWrapperHostedService : BackgroundService
 
         // Set a command's handlers and other staff.
         _discordClient.SlashCommandExecuted += SlashCommandHandler;
-        // Set own 
-        _discordClient.VoiceServerUpdated += VoiceServerUpdated;
-    }
-
-    private Task VoiceServerUpdated(SocketVoiceServer voiceServer)
-    {
-        throw new NotImplementedException();
     }
 
     private async Task SlashCommandHandler(SocketSlashCommand cmd)
     {
-        using IDisposable? loggingScope = _logger.BeginScope(cmd);
         _logger.LogSlashCommandReceived();
 
         SocketInteractionContext ctx = new(_discordClient, cmd);
         IResult execRslt =
             await _interactionService.ExecuteCommandAsync(ctx, _serviceProvider);
 
-        if (!execRslt.IsSuccess)
+        if (execRslt.Error is not null)
         {
             _logger.LogSlashCommandFailed();
 
