@@ -1,4 +1,5 @@
-﻿using Remora.Rest.Core;
+﻿using Microsoft.Extensions.Hosting;
+using Remora.Rest.Core;
 using System.Diagnostics.CodeAnalysis;
 
 namespace DJWatermelon.AudioService;
@@ -16,6 +17,6 @@ public interface IPlayersManager : IDisposable, IAsyncDisposable
     IEnumerable<IPlayer> GetPlayers();
 
     Task<IEnumerable<ITrackHandle>> SearchForTrackAsync(
-        string prompt,
+        string prompt, 
         CancellationToken cancellationToken);
 }
