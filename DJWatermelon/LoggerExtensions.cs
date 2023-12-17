@@ -1,21 +1,17 @@
-﻿using Discord.WebSocket;
-using Microsoft.Extensions.Logging;
+﻿using Microsoft.Extensions.Logging;
 
 namespace DJWatermelon;
 
 internal static partial class LoggerExtensions
 {
+    #region Discord wrapper messages
+
     [LoggerMessage(
         EventId = 0,
-        EventName = "DiscordWrapperMessage",
-        Message = "{message}")]
-    public static partial void LogDiscordWrapperMessage(
-        this ILogger<DiscordSocketClient> logger,
-        LogLevel logLevel,
-        Exception exception,
-        string message);
-
-    #region Discord wrapper messages
+        EventName = "ConnectionEstablishment",
+        Level = LogLevel.Error,
+        Message = "Begin connection establishment.")]
+    public static partial void LogConnectionEstablishment(this ILogger logger);
 
     [LoggerMessage(
         EventId = 1,

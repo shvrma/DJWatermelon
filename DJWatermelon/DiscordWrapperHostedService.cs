@@ -1,57 +1,51 @@
-﻿using Discord;
-using Discord.Interactions;
-using Discord.WebSocket;
-using DJWatermelon.AudioService;
-using Microsoft.Extensions.Configuration;
+﻿using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Remora.Discord.API.Abstractions.Objects;
+using Remora.Discord.API.Gateway.Commands;
+using Remora.Discord.API.Objects;
+using Remora.Discord.Commands.Services;
+using Remora.Discord.Gateway;
+using Remora.Rest.Core;
+using Remora.Results;
 using System.Reflection;
 
 namespace DJWatermelon;
 
 internal class DiscordWrapperHostedService : BackgroundService
 {
-    private readonly DiscordSocketClient _discordClient;
-    private readonly InteractionService _interactionService;
+    private readonly DiscordGatewayClient _discordClient;
     private readonly ILogger<DiscordWrapperHostedService> _logger;
-    private readonly ILogger<DiscordSocketClient> _discordLogger;
+    private readonly ILogger<DiscordGatewayClient> _discordLogger;
     private readonly IConfiguration _config;
     private readonly IHostEnvironment _hostEnvironment;
     private readonly IServiceProvider _serviceProvider;
-    private readonly IPlayersManager _playersManager;
+    private readonly SlashService _slashService;
 
     public DiscordWrapperHostedService(
-        DiscordSocketClient client,
-        InteractionService interactionService,
+        DiscordGatewayClient client,
         ILogger<DiscordWrapperHostedService> logger,
-        ILogger<DiscordSocketClient> discordLogger,
+        ILogger<DiscordGatewayClient> discordLogger,
         IConfiguration config,
         IHostEnvironment hostEnvironment,
         IServiceProvider serviceProvider,
-        IPlayersManager playersManager)
+        SlashService slashService)
     {
         _discordClient = client;
         _logger = logger;
         _discordLogger = discordLogger;
         _config = config;
-        _interactionService = interactionService;
         _hostEnvironment = hostEnvironment;
         _serviceProvider = serviceProvider;
-        _playersManager = playersManager;
+        _slashService = slashService;
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        // Start preparation as a connection establishment and set up all the event handlers.
-        _discordClient.Log += msg =>
-        {
-            _discordLogger.LogDiscordWrapperMessage(
-                logLevel: (LogLevel)(5 - msg.Severity),
-                msg.Exception,
-                msg.Message);
+        _discordLogger.LogConnectionEstablishment();
 
-            return Task.CompletedTask;
-        };
+        // Start preparation as a connection establishment and set up all the event handlers.
+        await _discordClient.RunAsync(stoppingToken);
 
         // Check the bot's token presence and connect if it is.
         string? token = _config["DiscordToken"];
@@ -60,58 +54,35 @@ internal class DiscordWrapperHostedService : BackgroundService
             _logger.LogTokenMisplaced();
             ArgumentException.ThrowIfNullOrEmpty(token);
         }
-        await _discordClient.LoginAsync(TokenType.Bot, token);
-        await _discordClient.StartAsync();
+        _discordClient.SubmitCommand(
+            new Identify(
+                token, 
+                new IdentifyConnectionProperties("DJWatermelon")));
 
-        // Expicticly wait until the wrapper is ready as it initializes on another thread.
-        using AutoResetEvent readyEvent = new(false);
-        _discordClient.Ready += () =>
-        {
-            readyEvent.Set();
-            return Task.CompletedTask;
-        };
-        readyEvent.WaitOne();
-
-        await _discordClient.SetGameAsync("/help", type: ActivityType.Listening);
+        _discordClient.SubmitCommand(
+            new UpdatePresence(
+                UserStatus.Online, false, null, new List<IActivity> 
+                {
+                    new Activity("/help", ActivityType.Listening)
+                }));
 
         _logger.LogDiscordWrapperReady();
 
         // Register bot's commands.
-        await _interactionService.AddModulesAsync(Assembly.GetExecutingAssembly(), _serviceProvider);
-        
         string? debugGuildIdStr = _config["TestingGuildId"];
-        if (_hostEnvironment.IsDevelopment() && !string.IsNullOrWhiteSpace(debugGuildIdStr))
+        if (_hostEnvironment.IsDevelopment())
         {
-            await _interactionService.RegisterCommandsToGuildAsync(
-                guildId: ulong.Parse(debugGuildIdStr!));
-        }
-        else
-        {
-            if (string.IsNullOrWhiteSpace(debugGuildIdStr))
+            if (!string.IsNullOrWhiteSpace(debugGuildIdStr) && 
+                Snowflake.TryParse(debugGuildIdStr, out Snowflake? debugGuildSnowflake))
+            {
+                await _slashService.UpdateSlashCommandsAsync(debugGuildSnowflake, ct: stoppingToken);
+            }
+            else
             {
                 _logger.LogTestingGuildIdMisplaced();
+
+                await _slashService.UpdateSlashCommandsAsync();
             }
-
-            await _interactionService.RegisterCommandsGloballyAsync();
-        }
-
-        // Set a command's handlers and other staff.
-        _discordClient.SlashCommandExecuted += SlashCommandHandler;
-    }
-
-    private async Task SlashCommandHandler(SocketSlashCommand cmd)
-    {
-        _logger.LogSlashCommandReceived();
-
-        SocketInteractionContext ctx = new(_discordClient, cmd);
-        IResult execRslt =
-            await _interactionService.ExecuteCommandAsync(ctx, _serviceProvider);
-
-        if (execRslt.Error is not null)
-        {
-            _logger.LogSlashCommandFailed();
-
-
         }
     }
 }

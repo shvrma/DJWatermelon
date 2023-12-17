@@ -1,23 +1,36 @@
-﻿global using Discord;
-
-using Discord.Interactions;
-using Discord.WebSocket;
-using DJWatermelon;
+﻿using DJWatermelon;
 using DJWatermelon.AudioService;
 using DJWatermelon.AudioService.Lavalink;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using Refit;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Console;
+using Remora.Discord.API.Abstractions.Gateway.Commands;
+using Remora.Discord.Caching.Extensions;
+using Remora.Discord.Commands.Extensions;
+using Remora.Discord.Extensions.Extensions;
+using Remora.Discord.Gateway;
+using Remora.Discord.Gateway.Extensions;
+using Remora.Discord.Hosting.Extensions;
+using System.Reflection;
 using YoutubeExplode;
 
 HostApplicationBuilder hostBuilder =
     Host.CreateApplicationBuilder();
 
 hostBuilder.Services
-    .AddSingleton<DiscordSocketClient>()
-    .AddSingleton<YoutubeClient>()
-    .AddSingleton<InteractionService>();
+    .AddDiscordGateway()
+    .AddDiscordCaching()
+    .AddDiscordCommands(enableSlash: true)
+    .AddCommandGroupsFromAssembly(Assembly.GetExecutingAssembly())
+    .AddRespondersFromAssembly(Assembly.GetExecutingAssembly())
+    .Configure<DiscordGatewayClientOptions>(options => 
+    {
+        options.Intents = GatewayIntents.Guilds | GatewayIntents.GuildVoiceStates;
+    });
+
+hostBuilder.Services.AddSingleton<YoutubeClient>();
 
 hostBuilder.Services
     .AddHostedService<DiscordWrapperHostedService>()
@@ -37,15 +50,5 @@ else
         .AddOptionsWithValidateOnStart<LavalinkOptions>()
         .BindConfiguration(nameof(LavalinkOptions));
 }
-
-hostBuilder.Services.AddSingleton(new DiscordSocketConfig
-{
-    GatewayIntents = GatewayIntents.GuildVoiceStates | GatewayIntents.Guilds
-});
-
-hostBuilder.Services.AddSingleton(new InteractionServiceConfig
-{
-    UseCompiledLambda = true
-});
 
 hostBuilder.Build().Run();

@@ -1,18 +1,8 @@
-﻿using Discord.Audio;
-using Refit;
-
-namespace DJWatermelon.AudioService.Lavalink;
+﻿namespace DJWatermelon.AudioService.Lavalink;
 
 internal class LavalinkPlayer : IPlayer
 {
-    private readonly ILavalinkAPI _lavalinkAPI;
-    private ulong _guildId;
-    private string _lavalinkSessionId;
-
-    public LavalinkPlayer(
-        ulong guildId, 
-        string lavalinkSessionId,
-        ILavalinkAPI lavalinkAPI)
+    public LavalinkPlayer()
     {
         _guildId = guildId;
         _lavalinkSessionId = lavalinkSessionId;
