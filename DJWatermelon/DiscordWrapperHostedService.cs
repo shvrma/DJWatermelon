@@ -68,13 +68,14 @@ internal class DiscordWrapperHostedService : BackgroundService
             if (!string.IsNullOrWhiteSpace(debugGuildIdStr) && 
                 Snowflake.TryParse(debugGuildIdStr, out Snowflake? debugGuildSnowflake))
             {
-                await _slashService.UpdateSlashCommandsAsync(debugGuildSnowflake, ct: stoppingToken);
+                await _slashService.UpdateSlashCommandsAsync(
+                    debugGuildSnowflake, ct: stoppingToken);
             }
             else
             {
                 _logger.LogTestingGuildIdMisplaced();
 
-                await _slashService.UpdateSlashCommandsAsync();
+                await _slashService.UpdateSlashCommandsAsync(ct: stoppingToken);
             }
         }
     }

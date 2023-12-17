@@ -34,6 +34,7 @@ hostBuilder.Services
         options.Intents = GatewayIntents.Guilds | GatewayIntents.GuildVoiceStates;
     });
 
+hostBuilder.Services.AddSingleton<VoiceStates>();
 hostBuilder.Services.AddSingleton<YoutubeClient>();
 
 hostBuilder.Services

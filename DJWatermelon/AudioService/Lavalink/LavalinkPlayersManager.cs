@@ -7,6 +7,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Refit;
+using Remora.Discord.API.Abstractions.Gateway.Events;
 using Remora.Discord.API.Abstractions.Objects;
 using Remora.Discord.API.Abstractions.Rest;
 using Remora.Discord.API.Gateway.Events;
@@ -27,40 +28,25 @@ using System.Text;
 using System.Text.Encodings.Web;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using Threading = System.Threading.Channels;
 
 namespace DJWatermelon.AudioService.Lavalink;
 
-internal sealed class LavalinkPlayersManager : 
-    IPlayersManager, IAsyncDisposable,
-    IResponder<VoiceStateUpdate>, IResponder<VoiceServerUpdate>
+internal sealed class LavalinkPlayersManager : IPlayersManager, IAsyncDisposable
 {
     private const string VersionPrefix = "/v4";
-
-    // A possible null endpoint in time between moving
-    // from a failed voice server to the newly allocated one.
-    private sealed record VoiceServer(string Token, string? Endpoint);
-    private sealed record VoiceSession(string SessionId, bool IsConnected);
 
     private readonly ILogger<LavalinkPlayersManager> _logger;
     private readonly IHostEnvironment _hostEnvironment;
     private readonly LavalinkOptions _options;
     private readonly DiscordGatewayClient _discordClient;
+    private readonly VoiceStates _voiceStates;
 
     private readonly IDictionary<Snowflake, IPlayer> _playersCache =
         new ConcurrentDictionary<Snowflake, IPlayer>();
 
-    // List of guild's voice servers. Every guild has its voice server. 
-    private readonly IDictionary<Snowflake, VoiceServer> _voiceServers =
-        new ConcurrentDictionary<Snowflake, VoiceServer>();
-    // Voice chat ID serves as a key for each session ID.
-    private readonly IDictionary<Snowflake, string> _voiceSessions = 
-        new ConcurrentDictionary<Snowflake, string>();
-    private readonly SemaphoreSlim _voiceSemaphore = new(1);
-
     private TaskCompletionSource<bool> _readyTaskCompletionSource;
     private bool _disposed;
-
-    private CancellationToken _shutdownCancellationToken;
 
     private readonly ILavalinkAPI _lavalinkAPI;
 
@@ -71,12 +57,14 @@ internal sealed class LavalinkPlayersManager :
         IHostEnvironment hostEnvironment,
         IOptions<LavalinkOptions> options,
         DiscordGatewayClient discordClient,
+        VoiceStates voiceStates,
         IDiscordRestUserAPI userAPI)
     {
         _logger = logger;
         _hostEnvironment = hostEnvironment;
         _options = options.Value;
         _discordClient = discordClient;
+        _voiceStates = voiceStates;
 
         _readyTaskCompletionSource = new TaskCompletionSource<bool>(
             creationOptions: TaskCreationOptions.RunContinuationsAsynchronously);
@@ -118,7 +106,6 @@ internal sealed class LavalinkPlayersManager :
             throw new InvalidOperationException("The node was already started.");
         }
 
-        _shutdownCancellationToken = cancellationToken;
         using CancellationTokenSource cancellationTokenSource =
             CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
 
@@ -130,10 +117,6 @@ internal sealed class LavalinkPlayersManager :
         {
             _readyTaskCompletionSource.TrySetException(exception);
             throw;
-        }
-        finally
-        {
-            _readyTaskCompletionSource.TrySetCanceled(CancellationToken.None);
         }
     }
 
@@ -360,7 +343,7 @@ internal sealed class LavalinkPlayersManager :
 
         // Payload processing.
         Memory<byte> buffer = GC.AllocateUninitializedArray<byte>(4 * 1024);
-        while (!_shutdownCancellationToken.IsCancellationRequested)
+        while (!cancellationToken.IsCancellationRequested)
         {
             ValueWebSocketReceiveResult receiveResult = await webSocket
                 .ReceiveAsync(buffer, cancellationToken)
@@ -422,35 +405,55 @@ internal sealed class LavalinkPlayersManager :
         cancellationToken.ThrowIfCancellationRequested();
         ArgumentNullException.ThrowIfNull(SessionId);
 
-        await _voiceSemaphore.WaitAsync(cancellationToken);
-
-        _logger.LogCreatingPlayer(guildID.Value);
-
         if (_playersCache.ContainsKey(guildID))
         {
-            _voiceSemaphore.Release();
             throw new Exception("The player already exists for a given guild.");
         }
 
-        if (!_voiceServers.TryGetValue(guildID, out VoiceServer? voiceServer))
+        _logger.LogCreatingPlayer(guildID.Value);
+
+        // Try to obtain the voice state; if it isn't,
+        // create a channel and listen to it.
+        if (!_voiceStates.VoiceSessionsCache.TryGetValue(
+            voiceChannelID, out VoiceSession? voiceSession))
         {
-            _voiceSemaphore.Release();
-            throw new Exception("Before trying to create a player, a " +
-                "connection to the voice chat should be established.");
+            Threading.Channel<VoiceSession> channel = 
+                Threading.Channel.CreateUnbounded<VoiceSession>();
+
+            _voiceStates.VoiceSessionsChannels.Add(
+                voiceChannelID, channel);
+            
+            if (!(await channel.Reader.WaitToReadAsync(cancellationToken) && 
+                channel.Reader.TryRead(out voiceSession)))
+            {
+                throw new Exception(
+                    "The session ID is null - probably, " +
+                    "the bot left the voice channel.");
+            }
+
+            // After the value is retrieved: dispose channel.
+            _voiceStates.VoiceSessionsChannels.Remove(voiceChannelID);
         }
 
-        if (string.IsNullOrEmpty(voiceServer.Endpoint))
+        // Do the same procedure as with the voice state object.
+        if (!_voiceStates.VoiceServersCache.TryGetValue(
+            guildID, out VoiceServer? voiceServer))
         {
-            _voiceSemaphore.Release();
-            throw new Exception("The voice server endpoint is currently null. " +
-                "The voice server was probably flattered, and a new one is now being allocated.");
-        }
+            Threading.Channel<VoiceServer> channel =
+                Threading.Channel.CreateUnbounded<VoiceServer>();
 
-        if (!_voiceSessions.TryGetValue(voiceChannelID, out string? voiceSessionID))
-        {
-            _voiceSemaphore.Release();
-            throw new Exception("The session ID is null - probably, " +
-                "the bot left the voice channel.");
+            _voiceStates.VoiceServersChannels.Add(guildID, channel);
+
+            if (!(await channel.Reader.WaitToReadAsync(cancellationToken) &&
+                channel.Reader.TryRead(out voiceServer)))
+            {
+                throw new Exception(
+                    "Before trying to create a player, a " +
+                    "connection to the voice chat should be established.");
+            }
+
+            // After the value is retrieved: dispose channel.
+            _voiceStates.VoiceServersChannels.Remove(guildID);
         }
 
         _ = await _lavalinkAPI.UpateOrCreatePlayerAsync(
@@ -459,14 +462,13 @@ internal sealed class LavalinkPlayersManager :
             playerUpdate: new PlayerUpdateModel(
                 TrackUpate: null,
                 VoiceState: new VoiceStateModel(
-                    Token: voiceServer.Token,
-                    Endpoint: voiceServer.Endpoint,
-                    SessionId: voiceSessionID)));
+                    Token: voiceServer.Token!,
+                    Endpoint: voiceServer.Endpoint!,
+                    SessionId: voiceSession.SessionId!)));
 
         LavalinkPlayer player = new();
         _playersCache.Add(guildID, player);
-
-        _voiceSemaphore.Release();
+        
         return player;
     }
 
@@ -527,11 +529,11 @@ internal sealed class LavalinkPlayersManager :
                 ReferenceHandler = ReferenceHandler.IgnoreCycles
             });
 
-    async ValueTask IAsyncDisposable.DisposeAsync()
+    ValueTask IAsyncDisposable.DisposeAsync()
     {
         if (_disposed)
         {
-            return;
+            return ValueTask.CompletedTask;
         }
 
         _disposed = true;
@@ -539,6 +541,8 @@ internal sealed class LavalinkPlayersManager :
         _readyTaskCompletionSource.TrySetCanceled();
 
         _logger.LogLavalinkDisposed();
+
+        return ValueTask.CompletedTask;
     }
 
     void IDisposable.Dispose()
@@ -553,98 +557,5 @@ internal sealed class LavalinkPlayersManager :
         _readyTaskCompletionSource.TrySetCanceled();
 
         _logger.LogLavalinkDisposed();
-    }
-
-    async Task<Result> IResponder<VoiceStateUpdate>.RespondAsync(
-        VoiceStateUpdate voiceStateUpdate, 
-        CancellationToken cancellationToken)
-    {
-        // Check if the user that changed the state is us.
-        if (_bot.ID != voiceStateUpdate.UserID)
-        {
-            return Result.Success;
-        }
-
-        await _voiceSemaphore.WaitAsync(cancellationToken);
-        
-        // Expliptical checks whatever log level is enabled to
-        // ensure we don't resolve the guild name insolently.
-        if (_logger.IsEnabled(LogLevel.Debug))
-        {
-            _logger.LogVoiceStateUpdated(
-                voiceStateUpdate.UserID.ToString(),
-                FormatObject(voiceStateUpdate));
-        }
-
-        // User disconected.
-        if (voiceStateUpdate.ChannelID == null)
-        {
-            _voiceSessions.Remove(voiceStateUpdate.GuildID.Value);
-        }
-        // A user connected or its state updated.
-        else
-        {
-            if (_voiceSessions.TryGetValue(voiceStateUpdate.ChannelID.Value, out _))
-            {
-                _voiceSessions[voiceStateUpdate.ChannelID.Value] = voiceStateUpdate.SessionID;
-            }
-            else
-            {
-                _voiceSessions.Add(voiceStateUpdate.ChannelID.Value, voiceStateUpdate.SessionID);
-            }
-        }
-
-        _voiceSemaphore.Release();
-
-        return Result.Success;
-    }
-
-    async Task<Result> IResponder<VoiceServerUpdate>.RespondAsync(
-        VoiceServerUpdate serverUpate, CancellationToken cancellationToken)
-    {
-        await _voiceSemaphore.WaitAsync(cancellationToken);
-
-        // Expliptical checks whatever log level is enabled to
-        // ensure we don't resolve the guild name insolently. 
-        if (_logger.IsEnabled(LogLevel.Debug))
-        {
-            _logger.LogVoiceServerUpdate(
-                FormatObject(serverUpate));
-        }
-
-        // Null endpoint means that the current voice server failed.
-        // Removing from the cache, also stop and destroy all currently active players.
-        if (string.IsNullOrEmpty(serverUpate.Endpoint))
-        {
-            _voiceServers.Remove(serverUpate.GuildID);
-            if (_playersCache.Remove(serverUpate.GuildID, out IPlayer? player))
-            {
-                player.Dispose();
-            }
-        }
-        else
-        {
-            // Cache guild's voice server.
-            if (_voiceServers.TryGetValue(serverUpate.GuildID, out VoiceServer? cachedVoiceServer))
-            {
-                _voiceServers[serverUpate.GuildID] = cachedVoiceServer with
-                {
-                    Token = serverUpate.Token,
-                    Endpoint = serverUpate.Endpoint
-                };
-            }
-            else
-            {
-                _voiceServers.Add(
-                    serverUpate.GuildID,
-                    new VoiceServer(
-                        Token: serverUpate.Token, 
-                        Endpoint: serverUpate.Endpoint));
-            }
-        }
-
-        _voiceSemaphore.Release();
-
-        return Result.Success;
     }
 }
