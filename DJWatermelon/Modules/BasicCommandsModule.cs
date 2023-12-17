@@ -4,9 +4,11 @@ using Remora.Commands.Groups;
 using Remora.Discord.API.Abstractions.Objects;
 using Remora.Discord.API.Abstractions.Rest;
 using Remora.Discord.API.Gateway.Commands;
+using Remora.Discord.API.Objects;
 using Remora.Discord.Commands.Attributes;
 using Remora.Discord.Commands.Contexts;
 using Remora.Discord.Commands.Extensions;
+using Remora.Discord.Commands.Feedback.Messages;
 using Remora.Discord.Commands.Feedback.Services;
 using Remora.Discord.Gateway;
 using Remora.Rest.Core;
@@ -22,34 +24,30 @@ public class BasicCommandsModule : CommandGroup
     private readonly FeedbackService _feedbackService;
     private readonly ICommandContext _commandContext;
     private readonly DiscordGatewayClient _discordGateway;
-    private readonly IDiscordRestUserAPI _userAPI;
-    private readonly IDiscordRestGuildAPI _guildAPI;
-    private readonly IDiscordRestChannelAPI _channelAPI;
 
     public BasicCommandsModule(
         IPlayersManager playersManager,
         FeedbackService feedbackService,
         ICommandContext commandContext,
-        DiscordGatewayClient discordGateway,
-        IDiscordRestUserAPI userAPI)
+        DiscordGatewayClient discordGateway)
     {
         _playersManager = playersManager;
         _feedbackService = feedbackService;
         _commandContext = commandContext;
         _discordGateway = discordGateway;
-        _userAPI = userAPI;
     }
 
     [Command("ping")]
     [Description("Try pinging the bot to see if you get a response.")]
-    public async Task PingAsync()
+    public async Task<Result> PingAsync()
     {
         await _feedbackService.SendContextualAsync("Pong!");
+        return Result.Success;
     }
     
     [Command("join")]
     [Description("Joins to the passed voice chat or, if omitted, to the same as you.")]
-    public async Task JoinVoiceAsync(
+    public async Task<Result> JoinVoiceAsync(
         [Option('c', "channel")]
         [Description("Voice channel to connect to.")]
         [ChannelTypes(ChannelType.GuildVoice)]
@@ -58,12 +56,14 @@ public class BasicCommandsModule : CommandGroup
         IPartialVoiceState? voiceState = default)
     {
         Snowflake? voiceChatID = channel?.ID ?? voiceState?.ChannelID.Value;
-        if (!voiceChatID.HasValue)
+        if (voiceChatID == null)
         {
             await _feedbackService.SendContextualAsync(
                 "You should be in any voice chat or pass it as a command param " +
                 "before executing it. :nerd::point_up:");
-            return;
+            
+            return Result.FromError(new ExceptionError(
+                new Exception("Can not retrieve voice channel to connect to.")));
         }
 
         if (!_commandContext.TryGetGuildID(out Snowflake guildID))
@@ -79,7 +79,7 @@ public class BasicCommandsModule : CommandGroup
                 ChannelID: voiceChatID));
         try
         {
-            // await _playersManager.CreatePlayerAsync(guildID, CancellationToken);
+            await _playersManager.CreatePlayerAsync(guildID, voiceChatID.Value, CancellationToken);
         }
         catch (Exception)
         {
@@ -87,6 +87,8 @@ public class BasicCommandsModule : CommandGroup
         }
 
         await _feedbackService.SendContextualAsync(
-            $"Successfully joined <@{voiceChatID}>.");
+            $"Successfully joined <#{voiceChatID}>.");
+
+        return Result.Success;
     }
 }

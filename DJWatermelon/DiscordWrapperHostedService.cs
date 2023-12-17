@@ -47,23 +47,16 @@ internal class DiscordWrapperHostedService : BackgroundService
         // Start preparation as a connection establishment and set up all the event handlers.
         await _discordClient.RunAsync(stoppingToken);
 
-        // Check the bot's token presence and connect if it is.
-        string? token = _config["DiscordToken"];
-        if (string.IsNullOrWhiteSpace(token))
-        {
-            _logger.LogTokenMisplaced();
-            ArgumentException.ThrowIfNullOrEmpty(token);
-        }
-        _discordClient.SubmitCommand(
-            new Identify(
-                token, 
-                new IdentifyConnectionProperties("DJWatermelon")));
-
         _discordClient.SubmitCommand(
             new UpdatePresence(
-                UserStatus.Online, false, null, new List<IActivity> 
+                Status: UserStatus.Idle, 
+                IsAFK: false, 
+                Since: DateTimeOffset.Now, 
+                Activities: new List<IActivity> 
                 {
-                    new Activity("/help", ActivityType.Listening)
+                    new Activity(
+                        Name: "/help", 
+                        Type: ActivityType.Listening)
                 }));
 
         _logger.LogDiscordWrapperReady();

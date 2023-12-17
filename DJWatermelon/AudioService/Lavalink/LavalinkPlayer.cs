@@ -4,9 +4,7 @@ internal class LavalinkPlayer : IPlayer
 {
     public LavalinkPlayer()
     {
-        _guildId = guildId;
-        _lavalinkSessionId = lavalinkSessionId;
-        _lavalinkAPI = lavalinkAPI;
+        
     }
 
     public LinkedList<ITrackHandle> Queue { get; } = new();

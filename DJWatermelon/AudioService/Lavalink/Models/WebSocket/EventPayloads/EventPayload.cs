@@ -1,4 +1,5 @@
-﻿using System.Text.Json.Serialization;
+﻿using Remora.Rest.Core;
+using System.Text.Json.Serialization;
 
 namespace DJWatermelon.AudioService.Lavalink.Models.WebSocket.EventPayloads;
 
@@ -6,4 +7,4 @@ namespace DJWatermelon.AudioService.Lavalink.Models.WebSocket.EventPayloads;
 public record EventPayload(
     [property: JsonRequired]
     [property: JsonPropertyName("guildId")]
-    ulong GuildId) : IPayload;
+    Snowflake GuildID) : IPayload;

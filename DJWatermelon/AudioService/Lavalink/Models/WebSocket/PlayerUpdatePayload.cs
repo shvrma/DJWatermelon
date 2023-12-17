@@ -1,11 +1,12 @@
-﻿using System.Text.Json.Serialization;
+﻿using Remora.Rest.Core;
+using System.Text.Json.Serialization;
 
 namespace DJWatermelon.AudioService.Lavalink.Models.WebSocket;
 
 public sealed record PlayerUpdatePayload(
     [property: JsonRequired]
     [property: JsonPropertyName("guildId")]
-    ulong GuildId,
+    Snowflake GuildID,
 
     [property: JsonRequired]
     [property: JsonPropertyName("state")]

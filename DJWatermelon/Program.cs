@@ -13,14 +13,18 @@ using Remora.Discord.Extensions.Extensions;
 using Remora.Discord.Gateway;
 using Remora.Discord.Gateway.Extensions;
 using Remora.Discord.Hosting.Extensions;
+using Remora.Discord.Rest;
 using System.Reflection;
 using YoutubeExplode;
 
 HostApplicationBuilder hostBuilder =
     Host.CreateApplicationBuilder();
 
+string? token = hostBuilder.Configuration["DiscordToken"];
+ArgumentNullException.ThrowIfNull(token, nameof(token));
+
 hostBuilder.Services
-    .AddDiscordGateway()
+    .AddDiscordGateway(_ => token)
     .AddDiscordCaching()
     .AddDiscordCommands(enableSlash: true)
     .AddCommandGroupsFromAssembly(Assembly.GetExecutingAssembly())

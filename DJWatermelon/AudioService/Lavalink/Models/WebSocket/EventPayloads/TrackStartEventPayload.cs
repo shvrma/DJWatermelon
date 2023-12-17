@@ -1,10 +1,11 @@
-﻿using System.Text.Json.Serialization;
+﻿using Remora.Rest.Core;
+using System.Text.Json.Serialization;
 
 namespace DJWatermelon.AudioService.Lavalink.Models.WebSocket.EventPayloads;
 
 public sealed record TrackStartEventPayload(
-    ulong GuildId,
+    Snowflake GuildID,
 
     [property: JsonRequired]
     [property: JsonPropertyName("track")]
-    LavalinkTrackHandle Track) : EventPayload(GuildId);
+    LavalinkTrackHandle Track) : EventPayload(GuildID);

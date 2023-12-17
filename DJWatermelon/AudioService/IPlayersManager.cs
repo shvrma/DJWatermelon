@@ -1,5 +1,4 @@
-﻿using Discord.WebSocket;
-using Microsoft.Extensions.Hosting;
+﻿using Microsoft.Extensions.Hosting;
 using Remora.Rest.Core;
 using System.Diagnostics.CodeAnalysis;
 
@@ -9,14 +8,12 @@ public interface IPlayersManager : IDisposable, IAsyncDisposable
 {
     Task InitAsync(CancellationToken cancellationToken);
 
-    Task<IPlayer> CreatePlayerAsync(Snowflake guilId, CancellationToken cancellationToken);
+    Task<IPlayer> CreatePlayerAsync(Snowflake guildID, Snowflake voiceChatID, CancellationToken cancellationToken);
 
-    Task DestroyPlayerAsync(Snowflake guilId, CancellationToken cancellationToken);
-
-    bool TryGetPlayer(Snowflake id, [NotNullWhen(true)] out IPlayer? player);
+    Task DestroyPlayerAsync(Snowflake guildID, CancellationToken cancellationToken);
 
     // Deals with cached players.
-    bool TryGetPlayer(ulong guilid, [NotNullWhen(true)] out IPlayer? player);
+    bool TryGetPlayer(Snowflake guidlID, [NotNullWhen(true)] out IPlayer? player);
     IEnumerable<IPlayer> GetPlayers();
 
     Task<IEnumerable<ITrackHandle>> SearchForTrackAsync(

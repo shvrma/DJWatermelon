@@ -140,12 +140,11 @@ internal static partial class LoggerExtensions
         EventId = 17,
         EventName = "VoiceStateUpdated",
         Level = LogLevel.Debug,
-        Message = "Voice state updated for user <{userName}>.\n\n<{voiceStateBefore}>\n\n<{voiceState}>",
+        Message = "Voice state updated for user <{userID}>.\n\n<{voiceState}>",
         SkipEnabledCheck = true)]
     public static partial void LogVoiceStateUpdated(
         this ILogger logger, 
-        string userName,
-        string voiceStateBefore,
+        string userID,
         string voiceState);
 
     [LoggerMessage(

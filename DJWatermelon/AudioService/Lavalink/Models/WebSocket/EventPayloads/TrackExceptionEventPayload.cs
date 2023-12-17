@@ -1,9 +1,11 @@
-﻿using System.Text.Json.Serialization;
+﻿using Remora.Discord.API.Objects;
+using Remora.Rest.Core;
+using System.Text.Json.Serialization;
 
 namespace DJWatermelon.AudioService.Lavalink.Models.WebSocket.EventPayloads;
 
 public sealed record TrackExceptionEventPayload(
-    ulong GuildId,
+    Snowflake GuildID,
 
     [property: JsonRequired]
     [property: JsonPropertyName("track")]
@@ -11,7 +13,7 @@ public sealed record TrackExceptionEventPayload(
 
     [property: JsonRequired]
     [property: JsonPropertyName("exception")]
-    LavalinkException Exception) : EventPayload(GuildId);
+    LavalinkException Exception) : EventPayload(GuildID);
 
 public sealed record LavalinkException(
     [property: JsonRequired]

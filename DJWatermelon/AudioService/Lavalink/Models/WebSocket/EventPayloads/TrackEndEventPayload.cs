@@ -1,9 +1,10 @@
-﻿using System.Text.Json.Serialization;
+﻿using Remora.Rest.Core;
+using System.Text.Json.Serialization;
 
 namespace DJWatermelon.AudioService.Lavalink.Models.WebSocket.EventPayloads;
 
 public sealed record TrackEndEventPayload(
-    ulong GuildId,
+    Snowflake GuildID,
 
     [property: JsonRequired]
     [property: JsonPropertyName("track")]
@@ -11,7 +12,7 @@ public sealed record TrackEndEventPayload(
 
     [property: JsonRequired]
     [property: JsonPropertyName("reason")]
-    TrackEndReason Reason) : EventPayload(GuildId);
+    TrackEndReason Reason) : EventPayload(GuildID);
 
 public enum TrackEndReason : byte
 {

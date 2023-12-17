@@ -12,7 +12,7 @@ namespace DJWatermelon.AudioService.Lavalink;
 internal interface ILavalinkAPI
 {
     [Get("/loadtracks")]
-    Task<TrackLoadResultModel> LoadTracksAsync(string identifier);
+    Task<TrackLoadResultModel> LoadTracksAsync(string ID);
 
     [Get("/decodetrack")]
     Task<LavalinkTrackHandle> DecodeTrackAsync(
@@ -23,17 +23,17 @@ internal interface ILavalinkAPI
         [Body] IEnumerable<string> encodedData);
 
     [Get("/sessions/{sessionId}/players")]
-    Task<IEnumerable<LavalinkPlayer>> GetPlayers(string sessionId);
+    Task<IEnumerable<LavalinkPlayer>> GetPlayers(string sessionID);
 
     [Get("/sessions/{sessionId}/players/{guildId}")]
-    Task<LavalinkPlayer> GetPlayerAsync(string sessionId, ulong guildId);
+    Task<LavalinkPlayer> GetPlayerAsync(string sessionId, ulong guildID);
 
     [Patch("/sessions/{sessionId}/players/{guildId}")]
     Task<PlayerModel> UpateOrCreatePlayerAsync(
-        string sessionId, ulong guildId, [Body] PlayerUpdateModel playerUpdate);
+        string sessionID, ulong guildID, [Body] PlayerUpdateModel playerUpdate);
 
     [Delete("/sessions/{sessionId}/players/{guildId}")]
-    Task DestroyPlayerAsync(string sessionId, ulong guildId);
+    Task DestroyPlayerAsync(string sessionID, ulong guildID);
 
     [Get("/info")]
     Task<LavalinkInfoModel> GetLavalinkInfoAsync();

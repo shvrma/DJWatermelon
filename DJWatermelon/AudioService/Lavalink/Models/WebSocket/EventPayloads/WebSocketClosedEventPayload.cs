@@ -1,9 +1,10 @@
-﻿using System.Text.Json.Serialization;
+﻿using Remora.Rest.Core;
+using System.Text.Json.Serialization;
 
 namespace DJWatermelon.AudioService.Lavalink.Models.WebSocket.EventPayloads;
 
 public sealed record WebSocketClosedEventPayload(
-    ulong GuildId,
+    Snowflake GuildID,
 
     [property: JsonRequired]
     [property: JsonPropertyName("code")]
@@ -15,4 +16,4 @@ public sealed record WebSocketClosedEventPayload(
 
     [property: JsonRequired]
     [property: JsonPropertyName("byRemote")]
-    bool WasByRemote) : EventPayload(GuildId);
+    bool WasByRemote) : EventPayload(GuildID);
