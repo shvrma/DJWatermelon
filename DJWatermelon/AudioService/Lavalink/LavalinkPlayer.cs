@@ -1,10 +1,8 @@
-﻿using Discord.Audio;
-
-namespace DJWatermelon.AudioService.Lavalink;
+﻿namespace DJWatermelon.AudioService.Lavalink;
 
 internal class LavalinkPlayer : IPlayer
 {
-    public LavalinkPlayer(IAudioClient audioClient)
+    public LavalinkPlayer()
     {
 
     }

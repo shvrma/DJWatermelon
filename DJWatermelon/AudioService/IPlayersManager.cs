@@ -1,19 +1,22 @@
 ﻿using Microsoft.Extensions.Hosting;
+using Remora.Rest.Core;
 using System.Diagnostics.CodeAnalysis;
 
 namespace DJWatermelon.AudioService;
 
-internal interface IPlayersManager : IDisposable, IAsyncDisposable
+public interface IPlayersManager : IDisposable, IAsyncDisposable
 {
-    Task InitAsync();
+    Task InitAsync(CancellationToken cancellationToken);
 
-    Task<IPlayer> CreatePlayerAsync(long guilId);
+    Task<IPlayer> CreatePlayerAsync(Snowflake guilId, CancellationToken cancellationToken);
 
-    Task DestroyPlayerAsync(ulong guilId);
+    Task DestroyPlayerAsync(Snowflake guilId, CancellationToken cancellationToken);
 
-    bool TryGetPlayer(ulong id, [NotNullWhen(true)] out IPlayer? player);
+    bool TryGetPlayer(Snowflake id, [NotNullWhen(true)] out IPlayer? player);
 
     IEnumerable<IPlayer> GetPlayers();
 
-    Task<IEnumerable<ITrackHandle>> SearchForTrackAsync(string prompt);
+    Task<IEnumerable<ITrackHandle>> SearchForTrackAsync(
+        string prompt, 
+        CancellationToken cancellationToken);
 }

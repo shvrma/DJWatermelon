@@ -1,6 +1,6 @@
-﻿namespace DJWatermelon.Modules
+﻿namespace DJWatermelon.Modules;
+
+internal class PlayerCommandsModule
 {
-    internal class PlayerCommandsModule
-    {
-    }
+
 }

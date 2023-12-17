@@ -1,6 +1,6 @@
 ﻿namespace DJWatermelon.AudioService;
 
-internal interface ITrackHandle
+public interface ITrackHandle
 {
     string Title { get; init; }
 }
