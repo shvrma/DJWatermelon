@@ -4,7 +4,7 @@ using System.Text.Json.Serialization;
 namespace DJWatermelon.AudioService.Lavalink.Models.WebSocket.EventPayloads;
 
 public sealed record TrackStuckEventPayload(
-    Snowflake GuildID,
+    ulong GuildID,
 
     [property: JsonRequired]
     [property: JsonPropertyName("track")]
