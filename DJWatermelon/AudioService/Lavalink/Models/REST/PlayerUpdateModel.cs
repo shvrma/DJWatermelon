@@ -37,5 +37,5 @@ public sealed record PlayerUpdateModel(
     [property: JsonPropertyName("paused")]
     [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
     bool? IsPaused = false
-    
+
     /* TODO filters */);

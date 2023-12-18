@@ -17,12 +17,12 @@ namespace DJWatermelon;
 
 internal class VoiceStateUpdateResponder : IResponder<IVoiceStateUpdate>
 {
-    private readonly VoiceStates _voiceStates;
+    private readonly VoiceService _voiceStates;
     private readonly ILogger<VoiceStateUpdateResponder> _logger;
     private readonly IUser _bot;
 
     public VoiceStateUpdateResponder(
-        VoiceStates voiceStates,
+        VoiceService voiceStates,
         ILogger<VoiceStateUpdateResponder> logger,
         IDiscordRestUserAPI userAPI)
     {

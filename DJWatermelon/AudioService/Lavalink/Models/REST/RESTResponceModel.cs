@@ -14,8 +14,8 @@ public record RESTResponceModel
     [JsonExtensionData]
     protected JsonObject? OtherProperties { get; init; }
 
-    public ErrorModel? Error 
+    public ErrorModel? Error
         => JsonSerializer.Deserialize(
-            node: OtherProperties, 
+            node: OtherProperties,
             jsonTypeInfo: LavalinkModelsSourceGenerationContext.Default.ErrorModel);
 }

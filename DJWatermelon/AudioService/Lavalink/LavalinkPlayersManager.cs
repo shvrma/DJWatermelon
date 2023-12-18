@@ -40,7 +40,7 @@ internal sealed class LavalinkPlayersManager : IPlayersManager, IAsyncDisposable
     private readonly IHostEnvironment _hostEnvironment;
     private readonly LavalinkOptions _options;
     private readonly DiscordGatewayClient _discordClient;
-    private readonly VoiceStates _voiceStates;
+    private readonly VoiceService _voiceStates;
 
     private readonly IDictionary<Snowflake, IPlayer> _playersCache =
         new ConcurrentDictionary<Snowflake, IPlayer>();
@@ -57,7 +57,7 @@ internal sealed class LavalinkPlayersManager : IPlayersManager, IAsyncDisposable
         IHostEnvironment hostEnvironment,
         IOptions<LavalinkOptions> options,
         DiscordGatewayClient discordClient,
-        VoiceStates voiceStates,
+        VoiceService voiceStates,
         IDiscordRestUserAPI userAPI)
     {
         _logger = logger;
@@ -100,7 +100,7 @@ internal sealed class LavalinkPlayersManager : IPlayersManager, IAsyncDisposable
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
         cancellationToken.ThrowIfCancellationRequested();
-        
+
         if (_readyTaskCompletionSource.Task.Status == TaskStatus.Running)
         {
             throw new InvalidOperationException("The node was already started.");
@@ -397,8 +397,8 @@ internal sealed class LavalinkPlayersManager : IPlayersManager, IAsyncDisposable
     #region REST
 
     public async Task<IPlayer> CreatePlayerAsync(
-        Snowflake guildID, 
-        Snowflake voiceChannelID, 
+        Snowflake guildID,
+        Snowflake voiceChannelID,
         CancellationToken cancellationToken)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
@@ -417,13 +417,13 @@ internal sealed class LavalinkPlayersManager : IPlayersManager, IAsyncDisposable
         if (!_voiceStates.VoiceSessionsCache.TryGetValue(
             voiceChannelID, out VoiceSession? voiceSession))
         {
-            Threading.Channel<VoiceSession> channel = 
+            Threading.Channel<VoiceSession> channel =
                 Threading.Channel.CreateUnbounded<VoiceSession>();
 
             _voiceStates.VoiceSessionsChannels.Add(
                 voiceChannelID, channel);
-            
-            if (!(await channel.Reader.WaitToReadAsync(cancellationToken) && 
+
+            if (!(await channel.Reader.WaitToReadAsync(cancellationToken) &&
                 channel.Reader.TryRead(out voiceSession)))
             {
                 throw new Exception(
@@ -468,7 +468,7 @@ internal sealed class LavalinkPlayersManager : IPlayersManager, IAsyncDisposable
 
         LavalinkPlayer player = new();
         _playersCache.Add(guildID, player);
-        
+
         return player;
     }
 
@@ -492,14 +492,11 @@ internal sealed class LavalinkPlayersManager : IPlayersManager, IAsyncDisposable
         CancellationToken cancellationToken)
     {
         TrackLoadResultModel result = await _lavalinkAPI.LoadTracksAsync(prompt);
-        if (result.ResultType == LoadResultTypes.Error)
-        {
-            throw new Exception();
-        }
-
-        return result.ResultType switch
+        return result.ResultType == LoadResultTypes.Error
+            ? throw new Exception()
+            : result.ResultType switch
             {
-                LoadResultTypes.Track => 
+                LoadResultTypes.Track =>
                     new Collection<ITrackHandle>()
                     {
                         JsonSerializer.Deserialize<LavalinkTrackHandle>(result.Data)
@@ -509,7 +506,7 @@ internal sealed class LavalinkPlayersManager : IPlayersManager, IAsyncDisposable
                     JsonSerializer.Deserialize<PlaylistModel>(result.Data)!.Tracks
                         .Select(p => (ITrackHandle)p),
 
-                LoadResultTypes.Search => 
+                LoadResultTypes.Search =>
                     JsonSerializer.Deserialize<IEnumerable<LavalinkTrackHandle>>(result.Data)!
                         .Select(p => (ITrackHandle)p),
 
@@ -520,14 +517,6 @@ internal sealed class LavalinkPlayersManager : IPlayersManager, IAsyncDisposable
     }
 
     #endregion
-
-    private static string FormatObject(object objectToFormat)
-        => JsonSerializer.Serialize(
-            objectToFormat, 
-            new JsonSerializerOptions() 
-            { 
-                ReferenceHandler = ReferenceHandler.IgnoreCycles
-            });
 
     ValueTask IAsyncDisposable.DisposeAsync()
     {

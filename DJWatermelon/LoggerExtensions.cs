@@ -133,7 +133,7 @@ internal static partial class LoggerExtensions
         Message = "Discord voice server updated for guild <{guild}>.",
         SkipEnabledCheck = true)]
     public static partial void LogVoiceServerUpdate(
-        this ILogger logger, 
+        this ILogger logger,
         string guild);
 
     [LoggerMessage(
@@ -143,7 +143,7 @@ internal static partial class LoggerExtensions
         Message = "Voice state updated for user <{userID}>.\n\n<{voiceState}>",
         SkipEnabledCheck = true)]
     public static partial void LogVoiceStateUpdated(
-        this ILogger logger, 
+        this ILogger logger,
         string userID,
         string voiceState);
 
