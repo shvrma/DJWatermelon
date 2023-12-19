@@ -12,10 +12,10 @@ namespace DJWatermelon.AudioService.Lavalink.Models;
 public sealed record class PlayerState(
     [property: JsonRequired]
     [property: JsonPropertyName("time")]
-    int AbsoluteTimestamp,
+    ulong AbsoluteTimestamp,
 
     [property: JsonPropertyName("position")]
-    int Position,
+    ulong Position,
 
     [property: JsonRequired]
     [property: JsonPropertyName("connected")]

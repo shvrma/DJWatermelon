@@ -1,5 +1,4 @@
-﻿using DJWatermelon.AudioService;
-using Microsoft.Extensions.Logging;
+﻿using Microsoft.Extensions.Logging;
 using Remora.Discord.API.Abstractions.Gateway.Events;
 using Remora.Discord.API.Gateway.Events;
 using Remora.Discord.Gateway.Responders;
@@ -11,15 +10,15 @@ using System.Text;
 using System.Threading.Channels;
 using System.Threading.Tasks;
 
-namespace DJWatermelon;
+namespace DJWatermelon.AudioService;
 
 internal class VoiceServerUpdateResponder : IResponder<IVoiceServerUpdate>
 {
-    private readonly VoiceService _voiceStates;
+    private readonly VoiceStatesService _voiceStates;
     private readonly ILogger<VoiceServerUpdateResponder> _logger;
 
     public VoiceServerUpdateResponder(
-        VoiceService voiceStates,
+        VoiceStatesService voiceStates,
         ILogger<VoiceServerUpdateResponder> logger)
     {
         _voiceStates = voiceStates;
@@ -34,6 +33,7 @@ internal class VoiceServerUpdateResponder : IResponder<IVoiceServerUpdate>
         if (_logger.IsEnabled(LogLevel.Debug))
         {
             _logger.LogVoiceServerUpdate(
+                serverUpdate.GuildID.ToString(),
                 serverUpdate.ToString() ?? string.Empty);
         }
 

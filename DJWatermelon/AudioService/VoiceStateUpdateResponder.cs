@@ -13,16 +13,16 @@ using System.Text;
 using System.Threading.Channels;
 using System.Threading.Tasks;
 
-namespace DJWatermelon;
+namespace DJWatermelon.AudioService;
 
 internal class VoiceStateUpdateResponder : IResponder<IVoiceStateUpdate>
 {
-    private readonly VoiceService _voiceStates;
+    private readonly VoiceStatesService _voiceStates;
     private readonly ILogger<VoiceStateUpdateResponder> _logger;
     private readonly IUser _bot;
 
     public VoiceStateUpdateResponder(
-        VoiceService voiceStates,
+        VoiceStatesService voiceStates,
         ILogger<VoiceStateUpdateResponder> logger,
         IDiscordRestUserAPI userAPI)
     {
@@ -40,7 +40,7 @@ internal class VoiceStateUpdateResponder : IResponder<IVoiceStateUpdate>
         {
             return Result.Success;
         }
-
+        
         // Expliptical checks whatever log level is enabled to
         // ensure we don't resolve the guild name insolently.
         if (_logger.IsEnabled(LogLevel.Debug))
@@ -51,9 +51,12 @@ internal class VoiceStateUpdateResponder : IResponder<IVoiceStateUpdate>
         }
 
         // User disconected.
+        // Gateway's voice state update payload doesn't include
+        // the channel ID when the bot leaves off, so removing
+        // the corresponding voice state should be implemented.
         if (voiceStateUpdate.ChannelID == null)
         {
-            _voiceStates.VoiceSessionsCache.Remove(voiceStateUpdate.ChannelID.GetValueOrDefault());
+            return Result.Success;
         }
         // A user connected or its state updated.
         else
@@ -64,12 +67,10 @@ internal class VoiceStateUpdateResponder : IResponder<IVoiceStateUpdate>
             if (_voiceStates.VoiceSessionsCache.TryGetValue(
                 voiceChannelID, out VoiceSession? voiceSession))
             {
-                voiceSession = voiceSession with
+                _voiceStates.VoiceSessionsCache[voiceChannelID] = voiceSession with
                 {
                     SessionId = voiceStateUpdate.SessionID
                 };
-
-                _voiceStates.VoiceSessionsCache[voiceChannelID] = voiceSession;
             }
             // Add new voice session.
             else

@@ -11,7 +11,7 @@ public sealed record PlayerUpdateModel(
     [property: JsonRequired]
     [property: JsonPropertyName("track")]
     [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
-    PlayerTrackUpateModel? TrackUpate,
+    PlayerTrackUpateModel? TrackUpdate,
 
     [property: JsonRequired]
     [property: JsonPropertyName("voice")]

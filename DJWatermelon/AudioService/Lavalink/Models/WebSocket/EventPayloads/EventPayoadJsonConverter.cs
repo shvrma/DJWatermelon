@@ -73,37 +73,32 @@ public sealed class EventPayoadJsonConverter : JsonConverter<EventPayload>
             }
         }
 
-        JsonSerializerOptions sourceGenOptions = new(options)
-        {
-            TypeInfoResolver = LavalinkModelsSourceGenerationContext.Default
-        };
-
         return eventType switch
         {
             "TrackStartEvent"
                 => JsonSerializer.Deserialize<TrackStartEventPayload>(
                     ref copyReader,
-                    sourceGenOptions),
+                    options),
 
             "TrackEndEvent"
                 => JsonSerializer.Deserialize<TrackEndEventPayload>(
                     ref copyReader,
-                    sourceGenOptions),
+                    options),
 
             "TrackStuckEvent"
                 => JsonSerializer.Deserialize<TrackStuckEventPayload>(
                     ref copyReader,
-                    sourceGenOptions),
+                    options),
 
             "TrackExceptionEvent"
                 => JsonSerializer.Deserialize<TrackExceptionEventPayload>(
                     ref copyReader,
-                    sourceGenOptions),
+                    options),
 
             "WebSocketClosedEvent"
                 => JsonSerializer.Deserialize<WebSocketClosedEventPayload>(
                     ref copyReader,
-                    sourceGenOptions),
+                    options),
 
             _ => throw new InvalidOperationException("Unallowed value for EventType.")
         };

@@ -75,28 +75,23 @@ public sealed class PayloadJsonConverter : JsonConverter<IPayload>
             }
         }
 
-        JsonSerializerOptions sourceGenOptions = new(options)
-        {
-            TypeInfoResolver = LavalinkModelsSourceGenerationContext.Default
-        };
-
         return operationType switch
         {
             "ready" => JsonSerializer.Deserialize<ReadyPayload>(
                 ref copyReader,
-                options: sourceGenOptions),
+                options: options),
 
             "playerUpdate" => JsonSerializer.Deserialize<PlayerUpdatePayload>(
                 ref copyReader,
-                options: sourceGenOptions),
+                options: options),
 
             "stats" => JsonSerializer.Deserialize<StatisticsPayload>(
                 ref copyReader,
-                options: sourceGenOptions),
+                options: options),
 
             "event" => JsonSerializer.Deserialize<EventPayload>(
                 ref copyReader,
-                options: sourceGenOptions),
+                options: options),
 
             _ => throw new InvalidOperationException("Unallowed value for OperationTypes.")
         };

@@ -19,7 +19,6 @@ internal class DiscordWrapperHostedService : BackgroundService
     private readonly ILogger<DiscordGatewayClient> _discordLogger;
     private readonly IConfiguration _config;
     private readonly IHostEnvironment _hostEnvironment;
-    private readonly IServiceProvider _serviceProvider;
     private readonly SlashService _slashService;
 
     public DiscordWrapperHostedService(
@@ -28,7 +27,6 @@ internal class DiscordWrapperHostedService : BackgroundService
         ILogger<DiscordGatewayClient> discordLogger,
         IConfiguration config,
         IHostEnvironment hostEnvironment,
-        IServiceProvider serviceProvider,
         SlashService slashService)
     {
         _discordClient = client;
@@ -36,7 +34,6 @@ internal class DiscordWrapperHostedService : BackgroundService
         _discordLogger = discordLogger;
         _config = config;
         _hostEnvironment = hostEnvironment;
-        _serviceProvider = serviceProvider;
         _slashService = slashService;
     }
 
@@ -72,11 +69,11 @@ internal class DiscordWrapperHostedService : BackgroundService
                 Status: UserStatus.Idle,
                 IsAFK: false,
                 Since: DateTimeOffset.Now,
-                Activities: new List<IActivity>
+                Activities: new IActivity[]
                 {
                     new Activity(
-                        Name: "/help",
-                        Type: ActivityType.Listening)
+                        Name: "Nothing",
+                        Type: ActivityType.Game)
                 }));
 
         _logger.LogDiscordWrapperReady();

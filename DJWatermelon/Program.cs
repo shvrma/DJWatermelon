@@ -7,6 +7,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Console;
 using Remora.Discord.API.Abstractions.Gateway.Commands;
+using Remora.Discord.API.Extensions;
 using Remora.Discord.Caching.Extensions;
 using Remora.Discord.Commands.Extensions;
 using Remora.Discord.Extensions.Extensions;
@@ -32,9 +33,10 @@ hostBuilder.Services
     .Configure<DiscordGatewayClientOptions>(options =>
     {
         options.Intents = GatewayIntents.Guilds | GatewayIntents.GuildVoiceStates;
-    });
+    })
+    .ConfigureDiscordJsonConverters();
 
-hostBuilder.Services.AddSingleton<VoiceService>();
+hostBuilder.Services.AddSingleton<VoiceStatesService>();
 hostBuilder.Services.AddSingleton<YoutubeClient>();
 
 hostBuilder.Services
