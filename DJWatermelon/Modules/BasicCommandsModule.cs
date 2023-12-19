@@ -45,7 +45,7 @@ public class BasicCommandsModule : CommandGroup
         await _feedbackService.SendContextualAsync("Pong!");
         return Result.Success;
     }
-    
+
     [Command("join")]
     [Description("Joins to the passed voice chat or, if omitted, to the same as you.")]
     public async Task<Result> JoinVoiceAsync(
@@ -61,7 +61,7 @@ public class BasicCommandsModule : CommandGroup
             await _feedbackService.SendContextualAsync(
                 "You should be in any voice chat or pass it as a command param " +
                 "before executing it. :nerd::point_up:");
-            
+
             return Result.FromError(new ExceptionError(
                 new Exception("Can not retrieve voice channel to connect to.")));
         }
@@ -75,9 +75,9 @@ public class BasicCommandsModule : CommandGroup
         // Enqueue request and wait.
         _discordGateway.SubmitCommand(
             new UpdateVoiceState(
-                GuildID: guildID, 
+                GuildID: guildID,
                 IsSelfMuted: false,
-                IsSelfDeafened: true, 
+                IsSelfDeafened: true,
                 ChannelID: voiceChatID));
 
         await Task.Delay(_discordGateway.Latency, CancellationToken);

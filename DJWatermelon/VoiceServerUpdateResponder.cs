@@ -15,11 +15,11 @@ namespace DJWatermelon;
 
 internal class VoiceServerUpdateResponder : IResponder<IVoiceServerUpdate>
 {
-    private readonly VoiceStates _voiceStates;
+    private readonly VoiceService _voiceStates;
     private readonly ILogger<VoiceServerUpdateResponder> _logger;
 
     public VoiceServerUpdateResponder(
-        VoiceStates voiceStates,
+        VoiceService voiceStates,
         ILogger<VoiceServerUpdateResponder> logger)
     {
         _voiceStates = voiceStates;

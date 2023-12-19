@@ -29,12 +29,12 @@ hostBuilder.Services
     .AddDiscordCommands(enableSlash: true)
     .AddCommandGroupsFromAssembly(Assembly.GetExecutingAssembly())
     .AddRespondersFromAssembly(Assembly.GetExecutingAssembly())
-    .Configure<DiscordGatewayClientOptions>(options => 
+    .Configure<DiscordGatewayClientOptions>(options =>
     {
         options.Intents = GatewayIntents.Guilds | GatewayIntents.GuildVoiceStates;
     });
 
-hostBuilder.Services.AddSingleton<VoiceStates>();
+hostBuilder.Services.AddSingleton<VoiceService>();
 hostBuilder.Services.AddSingleton<YoutubeClient>();
 
 hostBuilder.Services
