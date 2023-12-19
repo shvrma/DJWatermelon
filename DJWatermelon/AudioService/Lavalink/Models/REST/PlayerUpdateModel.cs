@@ -11,7 +11,7 @@ public sealed record PlayerUpdateModel(
     [property: JsonRequired]
     [property: JsonPropertyName("track")]
     [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
-    PlayerTrackUpateModel? TrackUpdate,
+    PlayerTrackUpateModel? TrackUpate,
 
     [property: JsonRequired]
     [property: JsonPropertyName("voice")]
@@ -37,5 +37,5 @@ public sealed record PlayerUpdateModel(
     [property: JsonPropertyName("paused")]
     [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
     bool? IsPaused = false
-
+    
     /* TODO filters */);

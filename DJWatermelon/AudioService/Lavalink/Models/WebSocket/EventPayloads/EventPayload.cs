@@ -7,4 +7,4 @@ namespace DJWatermelon.AudioService.Lavalink.Models.WebSocket.EventPayloads;
 public record EventPayload(
     [property: JsonRequired]
     [property: JsonPropertyName("guildId")]
-    ulong GuildID) : IPayload;
+    Snowflake GuildID) : IPayload;

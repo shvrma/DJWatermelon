@@ -4,7 +4,7 @@ using System.Text.Json.Serialization;
 namespace DJWatermelon.AudioService.Lavalink.Models.WebSocket.EventPayloads;
 
 public sealed record TrackEndEventPayload(
-    ulong GuildID,
+    Snowflake GuildID,
 
     [property: JsonRequired]
     [property: JsonPropertyName("track")]

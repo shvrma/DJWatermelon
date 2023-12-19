@@ -130,12 +130,11 @@ internal static partial class LoggerExtensions
         EventId = 16,
         EventName = "VoiceServerUpdate",
         Level = LogLevel.Debug,
-        Message = "Discord voice server updated for guild <{guildID}>.\n\n{voiceServer}",
+        Message = "Discord voice server updated for guild <{guild}>.",
         SkipEnabledCheck = true)]
     public static partial void LogVoiceServerUpdate(
-        this ILogger logger,
-        string guildID,
-        string voiceServer);
+        this ILogger logger, 
+        string guild);
 
     [LoggerMessage(
         EventId = 17,
@@ -144,7 +143,7 @@ internal static partial class LoggerExtensions
         Message = "Voice state updated for user <{userID}>.\n\n<{voiceState}>",
         SkipEnabledCheck = true)]
     public static partial void LogVoiceStateUpdated(
-        this ILogger logger,
+        this ILogger logger, 
         string userID,
         string voiceState);
 
@@ -163,18 +162,6 @@ internal static partial class LoggerExtensions
         Level = LogLevel.Information,
         Message = "The Lavalink wrapper was disposed of.")]
     public static partial void LogLavalinkDisposed(this ILogger logger);
-
-    #endregion
-
-    #region Other
-
-    [LoggerMessage(
-        Level = LogLevel.Debug)]
-    public static partial void LogAudioServiceInitStarted(this ILogger logger);
-
-    [LoggerMessage(
-        Level = LogLevel.Debug)]
-    public static partial void LogAudioServiceStopRequested(this ILogger logger);
 
     #endregion
 }
