@@ -7,8 +7,6 @@ using Remora.Discord.API.Objects;
 using Remora.Discord.Commands.Services;
 using Remora.Discord.Gateway;
 using Remora.Rest.Core;
-using Remora.Results;
-using System.Reflection;
 
 namespace DJWatermelon;
 

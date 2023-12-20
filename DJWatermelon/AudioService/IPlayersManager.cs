@@ -1,5 +1,4 @@
-﻿using Microsoft.Extensions.Hosting;
-using Remora.Rest.Core;
+﻿using Remora.Rest.Core;
 using System.Diagnostics.CodeAnalysis;
 
 namespace DJWatermelon.AudioService;

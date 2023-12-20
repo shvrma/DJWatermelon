@@ -1,10 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace DJWatermelon.AudioService.Lavalink.Models.WebSocket.EventPayloads;
+﻿namespace DJWatermelon.AudioService.Lavalink.Models.WebSocket.EventPayloads;
 
 internal static class TrackEndReasonEnumExtensions
 {

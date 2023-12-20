@@ -1,14 +1,8 @@
 ﻿using Microsoft.Extensions.Logging;
 using Remora.Discord.API.Abstractions.Gateway.Events;
-using Remora.Discord.API.Gateway.Events;
 using Remora.Discord.Gateway.Responders;
 using Remora.Results;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using System.Threading.Channels;
-using System.Threading.Tasks;
 
 namespace DJWatermelon.AudioService;
 

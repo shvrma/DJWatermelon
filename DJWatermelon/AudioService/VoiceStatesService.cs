@@ -1,16 +1,7 @@
 ﻿using Microsoft.Extensions.Logging;
-using Remora.Discord.API.Objects;
 using Remora.Rest.Core;
-using System;
 using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.Diagnostics.CodeAnalysis;
-using System.Linq;
-using System.Text;
-using System.Threading;
 using System.Threading.Channels;
-using System.Threading.Tasks;
-using YoutubeExplode.Channels;
 using Channel = System.Threading.Channels.Channel;
 
 namespace DJWatermelon.AudioService;

@@ -2,20 +2,15 @@
 using Remora.Commands.Attributes;
 using Remora.Commands.Groups;
 using Remora.Discord.API.Abstractions.Objects;
-using Remora.Discord.API.Abstractions.Rest;
 using Remora.Discord.API.Gateway.Commands;
-using Remora.Discord.API.Objects;
 using Remora.Discord.Commands.Attributes;
 using Remora.Discord.Commands.Contexts;
 using Remora.Discord.Commands.Extensions;
-using Remora.Discord.Commands.Feedback.Messages;
 using Remora.Discord.Commands.Feedback.Services;
 using Remora.Discord.Gateway;
-using Remora.Discord.Gateway.Services;
 using Remora.Rest.Core;
 using Remora.Results;
 using System.ComponentModel;
-using System.Diagnostics;
 
 namespace DJWatermelon.Modules;
 

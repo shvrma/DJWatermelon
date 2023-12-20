@@ -2,36 +2,24 @@
 using DJWatermelon.AudioService.Lavalink.Models.REST;
 using DJWatermelon.AudioService.Lavalink.Models.WebSocket;
 using DJWatermelon.AudioService.Lavalink.Models.WebSocket.EventPayloads;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Refit;
 using Remora.Discord.API;
-using Remora.Discord.API.Abstractions.Gateway.Events;
 using Remora.Discord.API.Abstractions.Objects;
 using Remora.Discord.API.Abstractions.Rest;
-using Remora.Discord.API.Gateway.Events;
-using Remora.Discord.API.Objects;
 using Remora.Discord.Gateway;
-using Remora.Discord.Gateway.Responders;
 using Remora.Rest.Core;
 using Remora.Rest.Json;
-using Remora.Results;
-using System;
-using System.Buffers;
 using System.Collections.Concurrent;
-using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Net.Http.Headers;
 using System.Net.WebSockets;
 using System.Text;
-using System.Text.Encodings.Web;
 using System.Text.Json;
-using System.Text.Json.Serialization;
-using Threading = System.Threading.Channels;
 
 namespace DJWatermelon.AudioService.Lavalink;
 
@@ -48,7 +36,7 @@ internal sealed class LavalinkPlayersManager : IPlayersManager, IAsyncDisposable
     private readonly IDictionary<Snowflake, IPlayer> _playersCache =
         new ConcurrentDictionary<Snowflake, IPlayer>();
 
-    private TaskCompletionSource<bool> _readyTaskCompletionSource;
+    private readonly TaskCompletionSource<bool> _readyTaskCompletionSource;
     private bool _disposed;
 
     private readonly ILavalinkAPI _lavalinkAPI;
@@ -420,7 +408,7 @@ internal sealed class LavalinkPlayersManager : IPlayersManager, IAsyncDisposable
         }
 
         _logger.LogCreatingPlayer(guildID.Value);
-        
+
         (bool isVoiceServerSet, VoiceServer? voiceServer) =
             await _voiceStates.RetrieveVoiceServerAsync(guildID, cancellationToken);
 
@@ -436,7 +424,7 @@ internal sealed class LavalinkPlayersManager : IPlayersManager, IAsyncDisposable
                 "unavailability of the guild's voice server. ");
         }
 
-        (bool isVoiceSessionSet, VoiceSession? voiceSession) = 
+        (bool isVoiceSessionSet, VoiceSession? voiceSession) =
             await _voiceStates.RetrieveVoiceSessionAsync(voiceChannelID, cancellationToken);
 
         if (!isVoiceSessionSet)

@@ -1,8 +1,6 @@
 ﻿using DJWatermelon.AudioService.Lavalink.Models.WebSocket.EventPayloads;
-using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using System.Threading.Tasks;
 
 namespace DJWatermelon.AudioService.Lavalink.Models.WebSocket;
 

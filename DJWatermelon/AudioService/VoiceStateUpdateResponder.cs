@@ -2,16 +2,10 @@
 using Remora.Discord.API.Abstractions.Gateway.Events;
 using Remora.Discord.API.Abstractions.Objects;
 using Remora.Discord.API.Abstractions.Rest;
-using Remora.Discord.API.Gateway.Events;
 using Remora.Discord.Gateway.Responders;
 using Remora.Rest.Core;
 using Remora.Results;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using System.Threading.Channels;
-using System.Threading.Tasks;
 
 namespace DJWatermelon.AudioService;
 
@@ -40,7 +34,7 @@ internal class VoiceStateUpdateResponder : IResponder<IVoiceStateUpdate>
         {
             return Result.Success;
         }
-        
+
         // Expliptical checks whatever log level is enabled to
         // ensure we don't resolve the guild name insolently.
         if (_logger.IsEnabled(LogLevel.Debug))
