@@ -1,34 +1,32 @@
 ﻿using Microsoft.Extensions.Hosting;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
 
 namespace DJWatermelon.AudioService;
 
 internal class AudioServiceHostedService : IHostedService
 {
     private readonly IPlayersManager _playersManager;
+    private readonly ILogger<AudioServiceHostedService> _logger;
 
-    public AudioServiceHostedService(IPlayersManager playersManager)
+    public AudioServiceHostedService(
+        IPlayersManager playersManager,
+        ILogger<AudioServiceHostedService> logger)
     {
         _playersManager = playersManager;
+        _logger = logger;
     }
 
     public async Task StartAsync(CancellationToken cancellationToken)
     {
-        if (!cancellationToken.IsCancellationRequested)
-        {
-            await _playersManager.InitAsync(cancellationToken);
-        }
+        cancellationToken.ThrowIfCancellationRequested();
+        _logger.LogAudioServiceInitStarted();
+        await _playersManager.InitAsync(cancellationToken);
     }
 
     public async Task StopAsync(CancellationToken cancellationToken)
     {
-        if (!cancellationToken.IsCancellationRequested)
-        {
-            await _playersManager.DisposeAsync();
-        }
+        cancellationToken.ThrowIfCancellationRequested();
+        _logger.LogAudioServiceStopRequested();
+        await _playersManager.DisposeAsync();
     }
 }

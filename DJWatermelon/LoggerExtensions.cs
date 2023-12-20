@@ -159,7 +159,7 @@ internal static partial class LoggerExtensions
     [LoggerMessage(
         EventId = 19,
         EventName = "LavalinkDisposed",
-        Level = LogLevel.Information,
+        Level = LogLevel.Warning,
         Message = "The Lavalink wrapper was disposed of.")]
     public static partial void LogLavalinkDisposed(this ILogger logger);
 

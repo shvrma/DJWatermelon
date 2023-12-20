@@ -1,11 +1,6 @@
 ﻿using DJWatermelon.AudioService.Lavalink.Models.REST;
 using DJWatermelon.AudioService.Lavalink.Models.WebSocket;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using System.Text.Json.Serialization;
-using System.Threading.Tasks;
 
 namespace DJWatermelon.AudioService.Lavalink.Models;
 
