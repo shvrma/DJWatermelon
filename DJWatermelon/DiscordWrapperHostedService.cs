@@ -2,6 +2,7 @@
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Remora.Discord.API.Abstractions.Objects;
+using Remora.Discord.API.Abstractions.Rest;
 using Remora.Discord.API.Gateway.Commands;
 using Remora.Discord.API.Objects;
 using Remora.Discord.Commands.Services;
@@ -61,7 +62,7 @@ internal class DiscordWrapperHostedService : BackgroundService
         {
             await _slashService.UpdateSlashCommandsAsync(ct: stoppingToken);
         }
-
+        
         _discordClient.SubmitCommand(
             new UpdatePresence(
                 Status: UserStatus.Idle,

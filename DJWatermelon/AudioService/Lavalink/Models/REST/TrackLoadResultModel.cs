@@ -6,13 +6,13 @@ namespace DJWatermelon.AudioService.Lavalink.Models.REST;
 public sealed record TrackLoadResultModel(
     [property: JsonRequired]
     [property: JsonPropertyName("loadType")]
-    [property: JsonConverter(typeof(JsonStringEnumConverter<LoadResultTypes>))]
     LoadResultTypes ResultType,
 
     [property: JsonRequired]
     [property: JsonPropertyName("data")]
     JsonNode Data);
 
+[JsonConverter(typeof(JsonStringEnumConverter<LoadResultTypes>))]
 public enum LoadResultTypes
 {
     Track,
@@ -20,9 +20,4 @@ public enum LoadResultTypes
     Search,
     Empty,
     Error
-}
-
-public interface ILoadResultData
-{
-
 }

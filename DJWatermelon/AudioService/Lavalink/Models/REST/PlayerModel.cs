@@ -1,14 +1,16 @@
-﻿using System.Text.Json.Serialization;
+﻿using Remora.Rest.Core;
+using System.Text.Json.Serialization;
 
 namespace DJWatermelon.AudioService.Lavalink.Models.REST;
 
 public sealed record PlayerModel(
     [property: JsonRequired]
     [property: JsonPropertyName("guildId")]
-    ulong GuilId,
+    Snowflake GuilId,
 
     [property: JsonRequired]
     [property: JsonPropertyName("track")]
+    [property: JsonInclude]
     LavalinkTrackHandle? CurrentTrack,
 
     [property: JsonRequired]
@@ -25,5 +27,8 @@ public sealed record PlayerModel(
 
     [property: JsonRequired]
     [property: JsonPropertyName("voice")]
-    VoiceStateModel VoiceState
-    /* TODO, Filters */);
+    VoiceStateModel VoiceState,
+
+    [property: JsonRequired]
+    [property: JsonPropertyName("filters")]
+    FiltersModel Filters);

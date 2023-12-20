@@ -9,7 +9,17 @@ public readonly record struct LavalinkTrackHandle(
 
     [property: JsonRequired]
     [property: JsonPropertyName("info")]
-    LavalinkTrackInfo Info) : ITrackHandle
+    LavalinkTrackInfo Info,
+
+    [property: JsonRequired]
+    [property: JsonPropertyName("pluginInfo")]
+    [property: JsonInclude]
+    object? PluginInfo = default,
+
+    [property: JsonRequired]
+    [property: JsonPropertyName("userData")]
+    [property: JsonInclude]
+    object? UseData = default) : ITrackHandle
 {
     public string Title { get => Info.Title; init => throw new NotSupportedException(); }
 }
@@ -29,7 +39,7 @@ public readonly record struct LavalinkTrackInfo(
 
     [property: JsonRequired]
     [property: JsonPropertyName("length")]
-    int Duration,
+    ulong Duration,
 
     [property: JsonRequired]
     [property: JsonPropertyName("isStream")]
@@ -37,7 +47,7 @@ public readonly record struct LavalinkTrackInfo(
 
     [property: JsonRequired]
     [property: JsonPropertyName("position")]
-    int CurrentPosition,
+    ulong CurrentPosition,
 
     [property: JsonRequired]
     [property: JsonPropertyName("title")]
@@ -45,15 +55,18 @@ public readonly record struct LavalinkTrackInfo(
 
     [property: JsonRequired]
     [property: JsonPropertyName("uri")]
+    [property: JsonInclude]
     Uri? Uri,
 
     [property: JsonRequired]
     [property: JsonPropertyName("artworkUrl")]
+    [property: JsonInclude]
     Uri? Artwork,
 
     [property: JsonRequired]
     [property: JsonPropertyName("isrc")]
-    string ISRC,
+    [property: JsonInclude]
+    string? ISRC,
 
     [property: JsonRequired]
     [property: JsonPropertyName("sourceName")]

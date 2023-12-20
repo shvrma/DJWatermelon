@@ -18,4 +18,4 @@ public sealed record class PlayerState(
 
     [property: JsonRequired]
     [property: JsonPropertyName("ping")]
-    int Latency) : RESTResponceModel, IPayload;
+    int Latency) : IRESTResponceModel, IPayload;

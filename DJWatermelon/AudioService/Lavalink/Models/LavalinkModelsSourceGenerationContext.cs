@@ -5,7 +5,8 @@ using System.Text.Json.Serialization;
 
 namespace DJWatermelon;
 
-[JsonSourceGenerationOptions(WriteIndented = true, UseStringEnumConverter = true)]
+#region WebSocket
+
 [JsonSerializable(typeof(IPayload))]
 [JsonSerializable(typeof(ReadyPayload))]
 [JsonSerializable(typeof(PlayerUpdatePayload))]
@@ -18,17 +19,23 @@ namespace DJWatermelon;
 [JsonSerializable(typeof(TrackStuckEventPayload))]
 [JsonSerializable(typeof(WebSocketClosedEventPayload))]
 
-[JsonSerializable(typeof(RESTResponceModel))]
+#endregion
+
+#region REST
+
+[JsonSerializable(typeof(IRESTResponceModel))]
 [JsonSerializable(typeof(ErrorModel))]
 [JsonSerializable(typeof(PlayerModel))]
 [JsonSerializable(typeof(PlayerUpdateModel))]
 [JsonSerializable(typeof(PlayerTrackUpateModel))]
 [JsonSerializable(typeof(VoiceStateModel))]
-
 [JsonSerializable(typeof(TrackLoadResultModel))]
-[JsonSerializable(typeof(PlaylistModel))]
+[JsonSerializable(typeof(PlaylistResultDataModel))]
 [JsonSerializable(typeof(PlaylistInfoModel))]
 [JsonSerializable(typeof(LavalinkInfoModel))]
+
+#endregion
+
 internal partial class LavalinkModelsSourceGenerationContext : JsonSerializerContext
 {
 

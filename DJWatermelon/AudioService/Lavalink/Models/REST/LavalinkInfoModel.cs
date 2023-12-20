@@ -9,7 +9,7 @@ public sealed record LavalinkInfoModel(
 
     [property: JsonRequired]
     [property: JsonPropertyName("buildTime")]
-    int BuildTime,
+    ulong BuildTime,
 
     [property: JsonRequired]
     [property: JsonPropertyName("git")]
@@ -42,15 +42,15 @@ public record LavalinkVersionModel(
 
     [property: JsonRequired]
     [property: JsonPropertyName("major")]
-    int Major,
+    ushort Major,
 
     [property: JsonRequired]
     [property: JsonPropertyName("minor")]
-    int Minor,
+    ushort Minor,
 
     [property: JsonRequired]
     [property: JsonPropertyName("patch")]
-    int Patch,
+    ushort Patch,
 
     [property: JsonRequired]
     [property: JsonPropertyName("preRelease")]

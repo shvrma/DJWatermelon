@@ -5,15 +5,18 @@ namespace DJWatermelon.AudioService.Lavalink.Models.REST;
 public sealed record ErrorModel(
     [property: JsonRequired]
     [property: JsonPropertyName("timestamp")]
-    int Timestamp,
+    ulong Timestamp,
 
     [property: JsonRequired]
     [property: JsonPropertyName("status")]
-    short StatusCode,
+    ushort StatusCode,
 
     [property: JsonRequired]
     [property: JsonPropertyName("error")]
     string StatusCodeMessage,
+
+    [property: JsonPropertyName("tace")]
+    string? Trace,
 
     [property: JsonRequired]
     [property: JsonPropertyName("message")]
@@ -21,5 +24,4 @@ public sealed record ErrorModel(
 
     [property: JsonRequired]
     [property: JsonPropertyName("path")]
-    string RequestPath
-    /* TODO trace */) : RESTResponceModel;
+    string RequestPath) : IRESTResponceModel;

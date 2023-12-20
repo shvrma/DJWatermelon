@@ -23,6 +23,7 @@ public sealed record StatisticsPayload(
     [property: JsonPropertyName("cpu")]
     ServerProcessorUsageStatisticsModel ProcessorUsage,
 
+    [property: JsonRequired]
     [property: JsonPropertyName("frameStats")]
     ServerFrameStatisticsModel? FrameStatistics) : IPayload;
 
@@ -59,11 +60,11 @@ public sealed record class ServerProcessorUsageStatisticsModel(
 public sealed record ServerFrameStatisticsModel(
     [property: JsonRequired]
     [property: JsonPropertyName("sent")]
-    int SentFrames,
+    uint SentFrames,
 
     [property: JsonRequired]
     [property: JsonPropertyName("nulled")]
-    int NulledFrames,
+    uint NulledFrames,
 
     [property: JsonRequired]
     [property: JsonPropertyName("deficit")]
