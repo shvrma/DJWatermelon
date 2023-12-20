@@ -2,81 +2,71 @@
 using DJWatermelon.AudioService.Lavalink.Models.REST;
 using DJWatermelon.AudioService.Lavalink.Models.WebSocket;
 using DJWatermelon.AudioService.Lavalink.Models.WebSocket.EventPayloads;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Refit;
+using Remora.Discord.API;
 using Remora.Discord.API.Abstractions.Objects;
 using Remora.Discord.API.Abstractions.Rest;
-using Remora.Discord.API.Gateway.Events;
-using Remora.Discord.API.Objects;
 using Remora.Discord.Gateway;
-using Remora.Discord.Gateway.Responders;
 using Remora.Rest.Core;
-using Remora.Results;
-using System.Buffers;
+using Remora.Rest.Json;
 using System.Collections.Concurrent;
-using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Net.Http.Headers;
 using System.Net.WebSockets;
 using System.Text;
-using System.Text.Encodings.Web;
 using System.Text.Json;
-using System.Text.Json.Serialization;
 
 namespace DJWatermelon.AudioService.Lavalink;
 
-internal sealed class LavalinkPlayersManager : 
-    IPlayersManager, IAsyncDisposable,
-    IResponder<VoiceStateUpdate>, IResponder<VoiceServerUpdate>
+internal sealed class LavalinkPlayersManager : IPlayersManager, IAsyncDisposable
 {
     private const string VersionPrefix = "/v4";
-
-    // A possible null endpoint in time between moving
-    // from a failed voice server to the newly allocated one.
-    private sealed record VoiceServer(string Token, string? Endpoint);
-    private sealed record VoiceSession(string SessionId, bool IsConnected);
 
     private readonly ILogger<LavalinkPlayersManager> _logger;
     private readonly IHostEnvironment _hostEnvironment;
     private readonly LavalinkOptions _options;
     private readonly DiscordGatewayClient _discordClient;
+    private readonly VoiceStatesService _voiceStates;
 
     private readonly IDictionary<Snowflake, IPlayer> _playersCache =
         new ConcurrentDictionary<Snowflake, IPlayer>();
 
-    // List of guild's voice servers. Every guild has its voice server. 
-    private readonly IDictionary<Snowflake, VoiceServer> _voiceServers =
-        new ConcurrentDictionary<Snowflake, VoiceServer>();
-    // Voice chat ID serves as a key for each session ID.
-    private readonly IDictionary<Snowflake, string> _voiceSessions = 
-        new ConcurrentDictionary<Snowflake, string>();
-    private readonly SemaphoreSlim _voiceSemaphore = new(1);
-
-    private TaskCompletionSource<bool> _readyTaskCompletionSource;
+    private readonly TaskCompletionSource<bool> _readyTaskCompletionSource;
     private bool _disposed;
-
-    private CancellationToken _shutdownCancellationToken;
 
     private readonly ILavalinkAPI _lavalinkAPI;
 
     private readonly IUser _bot;
+
+    private readonly ReadOnlyDictionary<Snowflake, IPlayer> _readonlyPlayersCache;
+
+    private readonly JsonSerializerOptions _jsonSerializerOptions =
+        new(LavalinkModelsSourceGenerationContext.Default.Options)
+        {
+            Converters =
+            {
+                new SnowflakeConverter(Constants.DiscordEpoch)
+            }
+        };
 
     public LavalinkPlayersManager(
         ILogger<LavalinkPlayersManager> logger,
         IHostEnvironment hostEnvironment,
         IOptions<LavalinkOptions> options,
         DiscordGatewayClient discordClient,
+        VoiceStatesService voiceStates,
         IDiscordRestUserAPI userAPI)
     {
         _logger = logger;
         _hostEnvironment = hostEnvironment;
         _options = options.Value;
         _discordClient = discordClient;
+        _voiceStates = voiceStates;
 
         _readyTaskCompletionSource = new TaskCompletionSource<bool>(
             creationOptions: TaskCreationOptions.RunContinuationsAsynchronously);
@@ -102,6 +92,7 @@ internal sealed class LavalinkPlayersManager :
             });
 
         _bot = userAPI.GetCurrentUserAsync().Result.Entity;
+        _readonlyPlayersCache = new(_playersCache);
     }
 
     public bool IsReady => _readyTaskCompletionSource.Task.IsCompletedSuccessfully;
@@ -112,28 +103,23 @@ internal sealed class LavalinkPlayersManager :
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
         cancellationToken.ThrowIfCancellationRequested();
-        
+
         if (_readyTaskCompletionSource.Task.Status == TaskStatus.Running)
         {
             throw new InvalidOperationException("The node was already started.");
         }
 
-        _shutdownCancellationToken = cancellationToken;
-        using CancellationTokenSource cancellationTokenSource =
+        using CancellationTokenSource linkedCancellationTokenSource =
             CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
 
         try
         {
-            await ReceiveInternalAsync(cancellationTokenSource.Token).ConfigureAwait(false);
+            await ReceiveInternalAsync(linkedCancellationTokenSource.Token).ConfigureAwait(false);
         }
         catch (Exception exception)
         {
             _readyTaskCompletionSource.TrySetException(exception);
             throw;
-        }
-        finally
-        {
-            _readyTaskCompletionSource.TrySetCanceled(CancellationToken.None);
         }
     }
 
@@ -144,7 +130,7 @@ internal sealed class LavalinkPlayersManager :
 
     public IEnumerable<IPlayer> GetPlayers()
     {
-        return new ReadOnlyDictionary<Snowflake, IPlayer>(_playersCache).Values;
+        return _readonlyPlayersCache.Values;
     }
 
     #region WebSocket
@@ -206,9 +192,11 @@ internal sealed class LavalinkPlayersManager :
         cancellationToken.ThrowIfCancellationRequested();
         ArgumentNullException.ThrowIfNull(payload);
 
-        if (!TryGetPlayer(payload.GuildID, out IPlayer? player))
+        Snowflake guildID = new(payload.GuildID);
+
+        if (!TryGetPlayer(guildID, out IPlayer? player))
         {
-            _logger.LogPayloadForInexistentPlayer(payload.GuildID.Value);
+            _logger.LogPayloadForInexistentPlayer(guildID.Value);
             return;
         }
 
@@ -315,13 +303,6 @@ internal sealed class LavalinkPlayersManager :
         ObjectDisposedException.ThrowIf(_disposed, this);
         cancellationToken.ThrowIfCancellationRequested();
 
-        if (_readyTaskCompletionSource.Task.IsCompleted)
-        {
-            // Initiate reconnect.
-            _readyTaskCompletionSource = new TaskCompletionSource<bool>(
-                creationOptions: TaskCreationOptions.RunContinuationsAsynchronously);
-        }
-
         // Init WebSocket.
         using ClientWebSocket webSocket = new();
 
@@ -354,13 +335,12 @@ internal sealed class LavalinkPlayersManager :
                 "connection with a remote host.", ex);
         }
 
-        _logger.LogWebSocketConnectionEstablished();
-
         _readyTaskCompletionSource.SetResult(true);
+        _logger.LogWebSocketConnectionEstablished();
 
         // Payload processing.
         Memory<byte> buffer = GC.AllocateUninitializedArray<byte>(4 * 1024);
-        while (!_shutdownCancellationToken.IsCancellationRequested)
+        while (!cancellationToken.IsCancellationRequested)
         {
             ValueWebSocketReceiveResult receiveResult = await webSocket
                 .ReceiveAsync(buffer, cancellationToken)
@@ -395,9 +375,9 @@ internal sealed class LavalinkPlayersManager :
                     text: Encoding.UTF8.GetString(buffer[..receiveResult.Count].Span));
             }
 
-            IPayload? payload = JsonSerializer.Deserialize(
-                buffer[..receiveResult.Count].Span,
-                LavalinkModelsSourceGenerationContext.Default.IPayload);
+            IPayload? payload = JsonSerializer.Deserialize<IPayload>(
+                utf8Json: buffer[..receiveResult.Count].Span,
+                options: _jsonSerializerOptions);
 
             if (payload == null)
             {
@@ -414,65 +394,63 @@ internal sealed class LavalinkPlayersManager :
     #region REST
 
     public async Task<IPlayer> CreatePlayerAsync(
-        Snowflake guildID, 
-        Snowflake voiceChannelID, 
+        Snowflake guildID,
+        Snowflake voiceChannelID,
         CancellationToken cancellationToken)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
         cancellationToken.ThrowIfCancellationRequested();
         ArgumentNullException.ThrowIfNull(SessionId);
 
-        await _voiceSemaphore.WaitAsync(cancellationToken);
-
-        _logger.LogCreatingPlayer(guildID.Value);
-
         if (_playersCache.ContainsKey(guildID))
         {
-            _voiceSemaphore.Release();
             throw new Exception("The player already exists for a given guild.");
         }
 
-        if (!_voiceServers.TryGetValue(guildID, out VoiceServer? voiceServer))
+        _logger.LogCreatingPlayer(guildID.Value);
+
+        (bool isVoiceServerSet, VoiceServer? voiceServer) =
+            await _voiceStates.RetrieveVoiceServerAsync(guildID, cancellationToken);
+
+        if (!isVoiceServerSet)
         {
-            _voiceSemaphore.Release();
-            throw new Exception("Before trying to create a player, a " +
-                "connection to the voice chat should be established.");
+            throw new Exception("Not able to retrieve a voice server for the given guild ID.");
         }
 
-        if (string.IsNullOrEmpty(voiceServer.Endpoint))
+        // Expliptical check for Endpoint presence.
+        if (string.IsNullOrEmpty(voiceServer!.Endpoint))
         {
-            _voiceSemaphore.Release();
-            throw new Exception("The voice server endpoint is currently null. " +
-                "The voice server was probably flattered, and a new one is now being allocated.");
+            throw new Exception("Not able to proceed because of " +
+                "unavailability of the guild's voice server. ");
         }
 
-        if (!_voiceSessions.TryGetValue(voiceChannelID, out string? voiceSessionID))
+        (bool isVoiceSessionSet, VoiceSession? voiceSession) =
+            await _voiceStates.RetrieveVoiceSessionAsync(voiceChannelID, cancellationToken);
+
+        if (!isVoiceSessionSet)
         {
-            _voiceSemaphore.Release();
-            throw new Exception("The session ID is null - probably, " +
-                "the bot left the voice channel.");
+            throw new Exception("Can not retrieve a voice session for the given channel ID.");
         }
 
         _ = await _lavalinkAPI.UpateOrCreatePlayerAsync(
             sessionID: SessionId,
             guildID: guildID.Value,
             playerUpdate: new PlayerUpdateModel(
-                TrackUpate: null,
+                Volume: 50,
+                TrackUpdate: null,
                 VoiceState: new VoiceStateModel(
-                    Token: voiceServer.Token,
-                    Endpoint: voiceServer.Endpoint,
-                    SessionId: voiceSessionID)));
+                    Token: voiceServer!.Token,
+                    Endpoint: voiceServer!.Endpoint,
+                    SessionId: voiceSession!.SessionId)));
 
         LavalinkPlayer player = new();
         _playersCache.Add(guildID, player);
 
-        _voiceSemaphore.Release();
         return player;
     }
 
     public async Task DestroyPlayerAsync(
-        Snowflake guilID,
-        CancellationToken cancellationToken)
+        Snowflake guilID, CancellationToken cancellationToken)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
         cancellationToken.ThrowIfCancellationRequested();
@@ -490,14 +468,11 @@ internal sealed class LavalinkPlayersManager :
         CancellationToken cancellationToken)
     {
         TrackLoadResultModel result = await _lavalinkAPI.LoadTracksAsync(prompt);
-        if (result.ResultType == LoadResultTypes.Error)
-        {
-            throw new Exception();
-        }
-
-        return result.ResultType switch
+        return result.ResultType == LoadResultTypes.Error
+            ? throw new Exception()
+            : result.ResultType switch
             {
-                LoadResultTypes.Track => 
+                LoadResultTypes.Track =>
                     new Collection<ITrackHandle>()
                     {
                         JsonSerializer.Deserialize<LavalinkTrackHandle>(result.Data)
@@ -507,7 +482,7 @@ internal sealed class LavalinkPlayersManager :
                     JsonSerializer.Deserialize<PlaylistModel>(result.Data)!.Tracks
                         .Select(p => (ITrackHandle)p),
 
-                LoadResultTypes.Search => 
+                LoadResultTypes.Search =>
                     JsonSerializer.Deserialize<IEnumerable<LavalinkTrackHandle>>(result.Data)!
                         .Select(p => (ITrackHandle)p),
 
@@ -519,19 +494,11 @@ internal sealed class LavalinkPlayersManager :
 
     #endregion
 
-    private static string FormatObject(object objectToFormat)
-        => JsonSerializer.Serialize(
-            objectToFormat, 
-            new JsonSerializerOptions() 
-            { 
-                ReferenceHandler = ReferenceHandler.IgnoreCycles
-            });
-
-    async ValueTask IAsyncDisposable.DisposeAsync()
+    ValueTask IAsyncDisposable.DisposeAsync()
     {
         if (_disposed)
         {
-            return;
+            return ValueTask.CompletedTask;
         }
 
         _disposed = true;
@@ -539,6 +506,8 @@ internal sealed class LavalinkPlayersManager :
         _readyTaskCompletionSource.TrySetCanceled();
 
         _logger.LogLavalinkDisposed();
+
+        return ValueTask.CompletedTask;
     }
 
     void IDisposable.Dispose()
@@ -553,98 +522,5 @@ internal sealed class LavalinkPlayersManager :
         _readyTaskCompletionSource.TrySetCanceled();
 
         _logger.LogLavalinkDisposed();
-    }
-
-    async Task<Result> IResponder<VoiceStateUpdate>.RespondAsync(
-        VoiceStateUpdate voiceStateUpdate, 
-        CancellationToken cancellationToken)
-    {
-        // Check if the user that changed the state is us.
-        if (_bot.ID != voiceStateUpdate.UserID)
-        {
-            return Result.Success;
-        }
-
-        await _voiceSemaphore.WaitAsync(cancellationToken);
-        
-        // Expliptical checks whatever log level is enabled to
-        // ensure we don't resolve the guild name insolently.
-        if (_logger.IsEnabled(LogLevel.Debug))
-        {
-            _logger.LogVoiceStateUpdated(
-                voiceStateUpdate.UserID.ToString(),
-                FormatObject(voiceStateUpdate));
-        }
-
-        // User disconected.
-        if (voiceStateUpdate.ChannelID == null)
-        {
-            _voiceSessions.Remove(voiceStateUpdate.GuildID.Value);
-        }
-        // A user connected or its state updated.
-        else
-        {
-            if (_voiceSessions.TryGetValue(voiceStateUpdate.ChannelID.Value, out _))
-            {
-                _voiceSessions[voiceStateUpdate.ChannelID.Value] = voiceStateUpdate.SessionID;
-            }
-            else
-            {
-                _voiceSessions.Add(voiceStateUpdate.ChannelID.Value, voiceStateUpdate.SessionID);
-            }
-        }
-
-        _voiceSemaphore.Release();
-
-        return Result.Success;
-    }
-
-    async Task<Result> IResponder<VoiceServerUpdate>.RespondAsync(
-        VoiceServerUpdate serverUpate, CancellationToken cancellationToken)
-    {
-        await _voiceSemaphore.WaitAsync(cancellationToken);
-
-        // Expliptical checks whatever log level is enabled to
-        // ensure we don't resolve the guild name insolently. 
-        if (_logger.IsEnabled(LogLevel.Debug))
-        {
-            _logger.LogVoiceServerUpdate(
-                FormatObject(serverUpate));
-        }
-
-        // Null endpoint means that the current voice server failed.
-        // Removing from the cache, also stop and destroy all currently active players.
-        if (string.IsNullOrEmpty(serverUpate.Endpoint))
-        {
-            _voiceServers.Remove(serverUpate.GuildID);
-            if (_playersCache.Remove(serverUpate.GuildID, out IPlayer? player))
-            {
-                player.Dispose();
-            }
-        }
-        else
-        {
-            // Cache guild's voice server.
-            if (_voiceServers.TryGetValue(serverUpate.GuildID, out VoiceServer? cachedVoiceServer))
-            {
-                _voiceServers[serverUpate.GuildID] = cachedVoiceServer with
-                {
-                    Token = serverUpate.Token,
-                    Endpoint = serverUpate.Endpoint
-                };
-            }
-            else
-            {
-                _voiceServers.Add(
-                    serverUpate.GuildID,
-                    new VoiceServer(
-                        Token: serverUpate.Token, 
-                        Endpoint: serverUpate.Endpoint));
-            }
-        }
-
-        _voiceSemaphore.Release();
-
-        return Result.Success;
     }
 }
