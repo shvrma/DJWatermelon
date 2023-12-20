@@ -4,16 +4,12 @@ using DJWatermelon.AudioService.Lavalink;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Logging.Console;
 using Remora.Discord.API.Abstractions.Gateway.Commands;
 using Remora.Discord.Caching.Extensions;
 using Remora.Discord.Commands.Extensions;
 using Remora.Discord.Extensions.Extensions;
 using Remora.Discord.Gateway;
 using Remora.Discord.Gateway.Extensions;
-using Remora.Discord.Hosting.Extensions;
-using Remora.Discord.Rest;
 using System.Reflection;
 using YoutubeExplode;
 
