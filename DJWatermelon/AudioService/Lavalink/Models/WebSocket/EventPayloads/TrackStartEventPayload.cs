@@ -3,7 +3,7 @@
 namespace DJWatermelon.AudioService.Lavalink.Models.WebSocket.EventPayloads;
 
 public sealed record TrackStartEventPayload(
-    Snowflake GuildID,
+    ulong GuildID,
 
     [property: JsonRequired]
     [property: JsonPropertyName("track")]

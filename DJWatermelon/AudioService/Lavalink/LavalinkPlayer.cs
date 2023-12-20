@@ -4,7 +4,7 @@ internal class LavalinkPlayer : IPlayer
 {
     public LavalinkPlayer()
     {
-        
+
     }
 
     public LinkedList<ITrackHandle> Queue { get; } = new();

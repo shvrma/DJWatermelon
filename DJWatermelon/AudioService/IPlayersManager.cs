@@ -16,6 +16,6 @@ public interface IPlayersManager : IDisposable, IAsyncDisposable
     IEnumerable<IPlayer> GetPlayers();
 
     Task<IEnumerable<ITrackHandle>> SearchForTrackAsync(
-        string prompt, 
+        string prompt,
         CancellationToken cancellationToken);
 }
