@@ -2,6 +2,7 @@
 using Remora.Commands.Attributes;
 using Remora.Commands.Groups;
 using Remora.Discord.API.Abstractions.Objects;
+using Remora.Discord.API.Abstractions.Rest;
 using Remora.Discord.API.Gateway.Commands;
 using Remora.Discord.Commands.Attributes;
 using Remora.Discord.Commands.Contexts;
@@ -11,6 +12,7 @@ using Remora.Discord.Gateway;
 using Remora.Rest.Core;
 using Remora.Results;
 using System.ComponentModel;
+using System.Text.Json;
 
 namespace DJWatermelon.Modules;
 
@@ -20,17 +22,20 @@ public class BasicCommandsModule : CommandGroup
     private readonly FeedbackService _feedbackService;
     private readonly ICommandContext _commandContext;
     private readonly DiscordGatewayClient _discordGateway;
+    private readonly IDiscordRestChannelAPI _channelAPI;
 
     public BasicCommandsModule(
         IPlayersManager playersManager,
         FeedbackService feedbackService,
         ICommandContext commandContext,
-        DiscordGatewayClient discordGateway)
+        DiscordGatewayClient discordGateway,
+        IDiscordRestChannelAPI channelAPI)
     {
         _playersManager = playersManager;
         _feedbackService = feedbackService;
         _commandContext = commandContext;
         _discordGateway = discordGateway;
+        _channelAPI = channelAPI;
     }
 
     [Command("ping")]
@@ -75,12 +80,18 @@ public class BasicCommandsModule : CommandGroup
                 IsSelfDeafened: true,
                 ChannelID: voiceChatID));
 
-        await Task.Delay(_discordGateway.Latency, CancellationToken);
-
         try
         {
-            await _playersManager.CreatePlayerAsync(
+            IPlayer player = await _playersManager.CreatePlayerAsync(
                 guildID, voiceChatID.Value, CancellationToken);
+
+            if (_commandContext.TryGetChannelID(out Snowflake channelID))
+            {
+                player.SendMessageAsync = async (embeds) =>
+                    await _channelAPI.CreateMessageAsync(
+                        channelID: channelID,
+                        embeds: new Optional<IReadOnlyList<IEmbed>>(embeds));
+            }
         }
         catch (Exception ex)
         {

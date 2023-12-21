@@ -25,7 +25,7 @@ public sealed record StatisticsPayload(
 
     [property: JsonRequired]
     [property: JsonPropertyName("frameStats")]
-    ServerFrameStatisticsModel? FrameStatistics) : IPayload;
+    ServerFrameStatisticsModel? FrameStatistics) : IWebSocketPayload;
 
 public sealed record class ServerMemoryUsageStatisticsModel(
     [property: JsonRequired]

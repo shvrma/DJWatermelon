@@ -2,7 +2,7 @@
 
 namespace DJWatermelon.AudioService.Lavalink.Models;
 
-public readonly record struct LavalinkTrackHandle(
+public record struct LavalinkTrackHandle(
     [property: JsonRequired]
     [property: JsonPropertyName("encoded")]
     string Encoded,
@@ -19,9 +19,9 @@ public readonly record struct LavalinkTrackHandle(
     [property: JsonRequired]
     [property: JsonPropertyName("userData")]
     [property: JsonInclude]
-    object? UseData = default) : ITrackHandle
+    object? UserData = default) : ITrackHandle
 {
-    public string Title { get => Info.Title; init => throw new NotSupportedException(); }
+    public string Title { readonly get => Info.Title; init => throw new NotSupportedException(); }
 }
 
 public readonly record struct LavalinkTrackInfo(

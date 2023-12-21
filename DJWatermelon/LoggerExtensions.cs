@@ -58,15 +58,14 @@ internal static partial class LoggerExtensions
         EventId = 6,
         EventName = "PayloadForInexistentPlayer",
         Level = LogLevel.Warning,
-        Message = "Payload received for an inexistent player with guild id: {guildId}.")]
-    public static partial void LogPayloadForInexistentPlayer(this ILogger logger, ulong guildId);
+        Message = "Payload received for an inexistent player with guild id: {guildID}.")]
+    public static partial void LogPayloadForInexistentPlayer(this ILogger logger, string guildID);
 
     [LoggerMessage(
         EventId = 7,
         EventName = "ReceivedPayload",
         Level = LogLevel.Trace,
-        Message = "A new payload from Lavalink was received.",
-        SkipEnabledCheck = true)]
+        Message = "A new payload from Lavalink was received.")]
     public static partial void LogReceivedPayload(this ILogger logger);
 
     [LoggerMessage(
@@ -155,7 +154,33 @@ internal static partial class LoggerExtensions
         Message = "Begin creating a player for a guild with id: <{guildId}>.")]
     public static partial void LogCreatingPlayer(this ILogger logger, ulong guildId);
 
-    // There.
+    #region Events
+
+    [LoggerMessage(
+        EventName = "TrackStartEvent",
+        Level = LogLevel.Debug,
+        Message = "{payload}")]
+    public static partial void LogTrackStartEvent(this ILogger logger, string payload);
+
+    [LoggerMessage(
+        EventName = "TrackEndEvent",
+        Level = LogLevel.Debug,
+        Message = "{payload}")]
+    public static partial void LogTrackEndEvent(this ILogger logger, string payload);
+
+    [LoggerMessage(
+        EventName = "TrackExceptionEvent",
+        Level = LogLevel.Debug,
+        Message = "{payload}")]
+    public static partial void LogTrackExceptionEvent(this ILogger logger, string payload);
+
+    [LoggerMessage(
+        EventName = "TrackStuckEvent",
+        Level = LogLevel.Debug,
+        Message = "{payload}")]
+    public static partial void LogTrackStuckEvent(this ILogger logger, string payload);
+
+    #endregion
 
     [LoggerMessage(
         EventId = 19,
@@ -169,10 +194,12 @@ internal static partial class LoggerExtensions
     #region Other
 
     [LoggerMessage(
+        EventName = "LogAudioServiceInit",
         Level = LogLevel.Debug)]
     public static partial void LogAudioServiceInitStarted(this ILogger logger);
 
     [LoggerMessage(
+        EventName = "LogAudioServiceStop",
         Level = LogLevel.Debug)]
     public static partial void LogAudioServiceStopRequested(this ILogger logger);
 

@@ -7,7 +7,7 @@ namespace DJWatermelon;
 
 #region WebSocket
 
-[JsonSerializable(typeof(IPayload))]
+[JsonSerializable(typeof(IWebSocketPayload))]
 [JsonSerializable(typeof(ReadyPayload))]
 [JsonSerializable(typeof(PlayerUpdatePayload))]
 [JsonSerializable(typeof(StatisticsPayload))]
@@ -23,7 +23,7 @@ namespace DJWatermelon;
 
 #region REST
 
-[JsonSerializable(typeof(IRESTResponceModel))]
+[JsonSerializable(typeof(IRESTModel))]
 [JsonSerializable(typeof(ErrorModel))]
 [JsonSerializable(typeof(PlayerModel))]
 [JsonSerializable(typeof(PlayerUpdateModel))]

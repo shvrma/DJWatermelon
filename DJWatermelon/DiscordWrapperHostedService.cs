@@ -62,7 +62,7 @@ internal class DiscordWrapperHostedService : BackgroundService
         {
             await _slashService.UpdateSlashCommandsAsync(ct: stoppingToken);
         }
-        
+
         _discordClient.SubmitCommand(
             new UpdatePresence(
                 Status: UserStatus.Idle,

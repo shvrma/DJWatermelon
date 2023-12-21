@@ -4,7 +4,7 @@ using System.Text.Json.Serialization;
 
 namespace DJWatermelon.AudioService.Lavalink.Models.REST;
 
-public interface IRESTResponceModel
+public interface IRESTModel
 {
 
 }

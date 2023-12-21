@@ -9,4 +9,4 @@ public sealed record PlaylistInfoModel(
 
     [property: JsonRequired]
     [property: JsonPropertyName("selectedTrack")]
-    short SelectedTrack) : IRESTResponceModel;
+    short SelectedTrack) : IRESTModel;

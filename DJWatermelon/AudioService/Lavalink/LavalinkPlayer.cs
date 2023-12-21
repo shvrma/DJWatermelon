@@ -1,25 +1,32 @@
-﻿namespace DJWatermelon.AudioService.Lavalink;
+﻿using Remora.Discord.API.Abstractions.Objects;
+using Remora.Rest.Core;
+
+namespace DJWatermelon.AudioService.Lavalink;
 
 internal class LavalinkPlayer : IPlayer
 {
-    public LavalinkPlayer()
-    {
+    private readonly Snowflake _guildID;
+    private readonly LavalinkPlayersManager _playerManager;
 
+    private bool _disposed;
+
+    public LavalinkPlayer(
+        Snowflake guildID,
+        LavalinkPlayersManager playerManager)
+    {
+        _guildID = guildID;
+        _playerManager = playerManager;
     }
+
+    public Func<IReadOnlyList<IEmbed>, ValueTask>? SendMessageAsync { get; set; }
 
     public LinkedList<ITrackHandle> Queue { get; } = new();
 
-    public LinkedListNode<ITrackHandle>? CurrentTrack { get; } = default;
+    public LinkedListNode<ITrackHandle>? CurrentTrackInqueue { get; set; }
 
-    public void Dispose()
-    {
-        throw new NotImplementedException();
-    }
+    public LoopModes LoopMode { get; set; } = LoopModes.None;
 
-    public ValueTask DisposeAsync()
-    {
-        throw new NotImplementedException();
-    }
+    public ITrackHandle? CurrentTrack { get; set; }
 
     public Task PlayAsync(ITrackHandle track)
     {
@@ -39,5 +46,27 @@ internal class LavalinkPlayer : IPlayer
     public Task PlayQueued()
     {
         throw new NotImplementedException();
+    }
+
+    void IDisposable.Dispose()
+    {
+        if (_disposed)
+        {
+            return;
+        }
+
+        _disposed = true;
+        _playerManager.DestroyPlayerAsync(_guildID, CancellationToken.None).Wait();
+    }
+
+    async ValueTask IAsyncDisposable.DisposeAsync()
+    {
+        if (_disposed)
+        {
+            return;
+        }
+
+        _disposed = true;
+        await _playerManager.DestroyPlayerAsync(_guildID, CancellationToken.None);
     }
 }

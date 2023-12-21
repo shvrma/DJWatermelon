@@ -9,4 +9,4 @@ public sealed record ReadyPayload(
 
     [property: JsonRequired]
     [property: JsonPropertyName("sessionId")]
-    string SessionId) : IPayload;
+    string SessionId) : IWebSocketPayload;

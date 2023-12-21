@@ -4,9 +4,9 @@ using System.Text.Json.Serialization;
 
 namespace DJWatermelon.AudioService.Lavalink.Models.WebSocket;
 
-public sealed class PayloadJsonConverter : JsonConverter<IPayload>
+public sealed class PayloadJsonConverter : JsonConverter<IWebSocketPayload>
 {
-    public override IPayload? Read(
+    public override IWebSocketPayload? Read(
         ref Utf8JsonReader reader,
         Type typeToConvert,
         JsonSerializerOptions options)
@@ -95,7 +95,7 @@ public sealed class PayloadJsonConverter : JsonConverter<IPayload>
         };
     }
 
-    public override void Write(Utf8JsonWriter writer, IPayload value, JsonSerializerOptions options)
+    public override void Write(Utf8JsonWriter writer, IWebSocketPayload value, JsonSerializerOptions options)
     {
         throw new NotSupportedException();
     }

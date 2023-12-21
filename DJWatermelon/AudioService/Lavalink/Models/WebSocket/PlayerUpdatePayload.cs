@@ -11,4 +11,4 @@ public sealed record PlayerUpdatePayload(
 
     [property: JsonRequired]
     [property: JsonPropertyName("state")]
-    PlayerState State) : IPayload;
+    PlayerState State) : IWebSocketPayload;

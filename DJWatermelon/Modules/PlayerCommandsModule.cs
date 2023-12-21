@@ -1,6 +1,8 @@
-﻿namespace DJWatermelon.Modules;
+﻿using Remora.Commands.Groups;
 
-internal class PlayerCommandsModule
+namespace DJWatermelon.Modules;
+
+internal class PlayerCommandsModule : CommandGroup
 {
 
 }

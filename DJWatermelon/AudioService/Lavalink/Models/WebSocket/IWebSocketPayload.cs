@@ -3,7 +3,7 @@
 namespace DJWatermelon.AudioService.Lavalink.Models.WebSocket;
 
 [JsonConverter(typeof(PayloadJsonConverter))]
-public interface IPayload
+public interface IWebSocketPayload
 {
 
 }

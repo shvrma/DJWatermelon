@@ -24,4 +24,4 @@ public sealed record ErrorModel(
 
     [property: JsonRequired]
     [property: JsonPropertyName("path")]
-    string RequestPath) : IRESTResponceModel;
+    string RequestPath) : IRESTModel;

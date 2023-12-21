@@ -2,33 +2,27 @@
 using DJWatermelon.AudioService.Lavalink.Models.REST;
 using DJWatermelon.AudioService.Lavalink.Models.WebSocket;
 using DJWatermelon.AudioService.Lavalink.Models.WebSocket.EventPayloads;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Refit;
-using Remora.Discord.API.Abstractions.Gateway.Events;
+using Remora.Discord.API;
 using Remora.Discord.API.Abstractions.Objects;
 using Remora.Discord.API.Abstractions.Rest;
-using Remora.Discord.API.Gateway.Events;
 using Remora.Discord.API.Objects;
 using Remora.Discord.Gateway;
-using Remora.Discord.Gateway.Responders;
 using Remora.Rest.Core;
-using Remora.Results;
-using System.Buffers;
+using Remora.Rest.Extensions;
+using Remora.Rest.Json;
 using System.Collections.Concurrent;
-using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
+using System.Drawing;
 using System.Net.Http.Headers;
 using System.Net.WebSockets;
 using System.Text;
-using System.Text.Encodings.Web;
 using System.Text.Json;
-using System.Text.Json.Serialization;
-using Threading = System.Threading.Channels;
 
 namespace DJWatermelon.AudioService.Lavalink;
 
@@ -39,31 +33,39 @@ internal sealed class LavalinkPlayersManager : IPlayersManager, IAsyncDisposable
     private readonly ILogger<LavalinkPlayersManager> _logger;
     private readonly IHostEnvironment _hostEnvironment;
     private readonly LavalinkOptions _options;
-    private readonly DiscordGatewayClient _discordClient;
     private readonly VoiceStatesService _voiceStates;
 
     private readonly IDictionary<Snowflake, IPlayer> _playersCache =
         new ConcurrentDictionary<Snowflake, IPlayer>();
 
-    private TaskCompletionSource<bool> _readyTaskCompletionSource;
+    private readonly TaskCompletionSource<bool> _readyTaskCompletionSource;
     private bool _disposed;
 
     private readonly ILavalinkAPI _lavalinkAPI;
 
     private readonly IUser _bot;
 
+    private readonly ReadOnlyDictionary<Snowflake, IPlayer> _readonlyPlayersCache;
+
+    private readonly JsonSerializerOptions _jsonSerializerOptions =
+        new(LavalinkModelsSourceGenerationContext.Default.Options)
+        {
+            Converters =
+            {
+                new SnowflakeConverter(Constants.DiscordEpoch)
+            }
+        };
+
     public LavalinkPlayersManager(
         ILogger<LavalinkPlayersManager> logger,
         IHostEnvironment hostEnvironment,
         IOptions<LavalinkOptions> options,
-        DiscordGatewayClient discordClient,
         VoiceStatesService voiceStates,
         IDiscordRestUserAPI userAPI)
     {
         _logger = logger;
         _hostEnvironment = hostEnvironment;
         _options = options.Value;
-        _discordClient = discordClient;
         _voiceStates = voiceStates;
 
         _readyTaskCompletionSource = new TaskCompletionSource<bool>(
@@ -90,6 +92,7 @@ internal sealed class LavalinkPlayersManager : IPlayersManager, IAsyncDisposable
             });
 
         _bot = userAPI.GetCurrentUserAsync().Result.Entity;
+        _readonlyPlayersCache = new(_playersCache);
     }
 
     public bool IsReady => _readyTaskCompletionSource.Task.IsCompletedSuccessfully;
@@ -106,12 +109,12 @@ internal sealed class LavalinkPlayersManager : IPlayersManager, IAsyncDisposable
             throw new InvalidOperationException("The node was already started.");
         }
 
-        using CancellationTokenSource cancellationTokenSource =
+        using CancellationTokenSource linkedCancellationTokenSource =
             CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
 
         try
         {
-            await ReceiveInternalAsync(cancellationTokenSource.Token).ConfigureAwait(false);
+            await LifecycleAsync(linkedCancellationTokenSource.Token).ConfigureAwait(false);
         }
         catch (Exception exception)
         {
@@ -127,22 +130,23 @@ internal sealed class LavalinkPlayersManager : IPlayersManager, IAsyncDisposable
 
     public IEnumerable<IPlayer> GetPlayers()
     {
-        return new ReadOnlyDictionary<Snowflake, IPlayer>(_playersCache).Values;
+        return _readonlyPlayersCache.Values;
     }
 
     #region WebSocket
 
     private async ValueTask ProcessPayloadAsync(
-        IPayload payload,
-        CancellationToken cancellationToken)
+        IWebSocketPayload payload, CancellationToken cancellationToken)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
         cancellationToken.ThrowIfCancellationRequested();
-        ArgumentNullException.ThrowIfNull(payload);
 
-        if (_logger.IsEnabled(LogLevel.Debug))
+        _logger.LogReceivedPayload();
+
+        if (string.IsNullOrEmpty(SessionId))
         {
-            _logger.LogReceivedPayload();
+            _logger.LogPayloadReceivedBeforeReady();
+            return;
         }
 
         if (payload is ReadyPayload readyPayload)
@@ -157,12 +161,6 @@ internal sealed class LavalinkPlayersManager : IPlayersManager, IAsyncDisposable
             _logger.LogLavalinkReady();
         }
 
-        if (string.IsNullOrEmpty(SessionId))
-        {
-            _logger.LogPayloadReceivedBeforeReady();
-            return;
-        }
-
         if (payload is EventPayload eventPayload)
         {
             await ProcessEventAsync(eventPayload, cancellationToken).ConfigureAwait(false);
@@ -171,31 +169,39 @@ internal sealed class LavalinkPlayersManager : IPlayersManager, IAsyncDisposable
 
         if (payload is PlayerUpdatePayload playerUpdatePayload)
         {
-            if (TryGetPlayer(playerUpdatePayload.GuildID, out IPlayer? _))
+            if (!TryGetPlayer(playerUpdatePayload.GuildID, out IPlayer? player))
             {
-                _logger.LogPayloadForInexistentPlayer(playerUpdatePayload.GuildID.Value);
+                _logger.LogPayloadForInexistentPlayer(playerUpdatePayload.GuildID.ToString());
                 return;
             }
 
-            // TODO.
+            LavalinkTrackHandle? curentTrack = player.CurrentTrack as LavalinkTrackHandle?;
+            if (curentTrack != null)
+            {
+                player.CurrentTrack = curentTrack.Value with
+                {
+                    Info = curentTrack.Value.Info with
+                    {
+                        CurrentPosition = playerUpdatePayload.State.Position
+                    }
+                };
+            }
         }
     }
 
     private async ValueTask ProcessEventAsync(
-        EventPayload payload,
-        CancellationToken cancellationToken = default)
+        EventPayload payload, CancellationToken cancellationToken)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
         cancellationToken.ThrowIfCancellationRequested();
-        ArgumentNullException.ThrowIfNull(payload);
 
         if (!TryGetPlayer(payload.GuildID, out IPlayer? player))
         {
-            _logger.LogPayloadForInexistentPlayer(payload.GuildID.Value);
+            _logger.LogPayloadForInexistentPlayer(payload.GuildID.ToString());
             return;
         }
 
-        ValueTask task = payload switch
+        ValueTask eventProcessTask = payload switch
         {
             TrackEndEventPayload trackEvent =>
                 ProcessTrackEndEventAsync(player, trackEvent, cancellationToken),
@@ -210,100 +216,131 @@ internal sealed class LavalinkPlayersManager : IPlayersManager, IAsyncDisposable
                 ProcessTrackExceptionEventAsync(player, trackEvent, cancellationToken),
 
             WebSocketClosedEventPayload closedEvent =>
-                ProcessWebSocketClosedEventAsync(player, closedEvent, cancellationToken),
+                ProcessWebSocketClosedEventAsync(closedEvent, cancellationToken),
 
             _ => throw new InvalidOperationException(),
         };
 
-        await task.ConfigureAwait(false);
-    }
-
-    private async ValueTask ProcessTrackEndEventAsync(
-        IPlayer player,
-        TrackEndEventPayload trackEndEvent,
-        CancellationToken cancellationToken = default)
-    {
-        ObjectDisposedException.ThrowIf(_disposed, this);
-        cancellationToken.ThrowIfCancellationRequested();
-        ArgumentNullException.ThrowIfNull(player);
-        ArgumentNullException.ThrowIfNull(trackEndEvent);
-
-        ITrackHandle track = trackEndEvent.Track;
-
-        // TODO.
-    }
-
-    private async ValueTask ProcessTrackExceptionEventAsync(
-        IPlayer player,
-        TrackExceptionEventPayload trackExceptionEvent,
-        CancellationToken cancellationToken = default)
-    {
-        ObjectDisposedException.ThrowIf(_disposed, this);
-        cancellationToken.ThrowIfCancellationRequested();
-        ArgumentNullException.ThrowIfNull(player);
-        ArgumentNullException.ThrowIfNull(trackExceptionEvent);
-
-        ITrackHandle track = trackExceptionEvent.Track;
-
-        // TODO.
+        await eventProcessTask.ConfigureAwait(false);
     }
 
     private async ValueTask ProcessTrackStartEventAsync(
         IPlayer player,
         TrackStartEventPayload trackStartEvent,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
         cancellationToken.ThrowIfCancellationRequested();
-        ArgumentNullException.ThrowIfNull(player);
-        ArgumentNullException.ThrowIfNull(trackStartEvent);
 
-        ITrackHandle track = trackStartEvent.Track;
+        _logger.LogTrackStartEvent(trackStartEvent.ToString());
 
-        // TODO.
+        if (player.SendMessageAsync != null)
+        {
+            await player.SendMessageAsync(new IEmbed[]
+            {
+                new Embed(
+                    Type: EmbedType.Link,
+                    Title: "Playing track", 
+                    Url: trackStartEvent.Track.Info.Uri?.ToString() ?? string.Empty,
+                    Timestamp: DateTimeOffset.Now,
+                    Colour: Color.Green)
+            });
+        }
+    }
+
+    private async ValueTask ProcessTrackEndEventAsync(
+        IPlayer player,
+        TrackEndEventPayload trackEndEvent,
+        CancellationToken cancellationToken)
+    {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+        cancellationToken.ThrowIfCancellationRequested();
+
+        _logger.LogTrackEndEvent(trackEndEvent.ToString());
+
+        if (trackEndEvent.Reason.MayStartNext())
+        {
+            await player.PlayQueued();
+        }
+    }
+
+    private async ValueTask ProcessTrackExceptionEventAsync(
+        IPlayer player,
+        TrackExceptionEventPayload trackExceptionEvent,
+        CancellationToken cancellationToken)
+    {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+        cancellationToken.ThrowIfCancellationRequested();
+
+        _logger.LogTrackExceptionEvent(trackExceptionEvent.ToString());
+
+        if (player.SendMessageAsync != null)
+        {
+            await player.SendMessageAsync(new IEmbed[]
+            {
+                new Embed(
+                    Type: EmbedType.Article,
+                    Title: "An exception occurred",
+                    Description:
+                        "Unfortunately, there was an error playing " +
+                        $"the track `{trackExceptionEvent.Track.Title}`. " +
+                        $"Moving on to the next track in the queue.",
+                    Timestamp: DateTimeOffset.UtcNow,
+                    Colour: Color.Green)
+                });
+        }
+
+        await player.PlayQueued();
     }
 
     private async ValueTask ProcessTrackStuckEventAsync(
         IPlayer player,
         TrackStuckEventPayload trackStuckEvent,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
         cancellationToken.ThrowIfCancellationRequested();
-        ArgumentNullException.ThrowIfNull(player);
-        ArgumentNullException.ThrowIfNull(trackStuckEvent);
 
-        ITrackHandle track = trackStuckEvent.Track;
+        _logger.LogTrackStuckEvent(trackStuckEvent.ToString());
 
-        // TODO.
+        if (trackStuckEvent.ExceededThreshold > 3000)
+        {
+            if (player.SendMessageAsync != null)
+            {
+                await player.SendMessageAsync(new IEmbed[]
+                {
+                    new Embed(
+                        Type: EmbedType.Article,
+                        Title: "Track stuck",
+                        Description:
+                            $"Unhappily, track '{trackStuckEvent.Track.Title}' stuck, so " +
+                            "starting the next track in the queue.",
+                        Timestamp: DateTimeOffset.UtcNow,
+                        Colour: Color.Green)
+                    });
+            }
+
+            await player.PlayQueued();
+        }
     }
 
-    private async ValueTask ProcessWebSocketClosedEventAsync(
-        IPlayer player,
+    private ValueTask ProcessWebSocketClosedEventAsync(
         WebSocketClosedEventPayload webSocketClosedEvent,
         CancellationToken cancellationToken)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
         cancellationToken.ThrowIfCancellationRequested();
-        ArgumentNullException.ThrowIfNull(player);
-        ArgumentNullException.ThrowIfNull(webSocketClosedEvent);
 
         WebSocketCloseStatus closeCode = (WebSocketCloseStatus)webSocketClosedEvent.Code;
 
-        // TODO.
+        throw new Exception($"The WebSocket connection was " +
+            $"closed with the following code: <{closeCode}>.");
     }
 
-    private async Task ReceiveInternalAsync(CancellationToken cancellationToken = default)
+    private async Task LifecycleAsync(CancellationToken cancellationToken = default)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
         cancellationToken.ThrowIfCancellationRequested();
-
-        if (_readyTaskCompletionSource.Task.IsCompleted)
-        {
-            // Initiate reconnect.
-            _readyTaskCompletionSource = new TaskCompletionSource<bool>(
-                creationOptions: TaskCreationOptions.RunContinuationsAsynchronously);
-        }
 
         // Init WebSocket.
         using ClientWebSocket webSocket = new();
@@ -337,9 +374,8 @@ internal sealed class LavalinkPlayersManager : IPlayersManager, IAsyncDisposable
                 "connection with a remote host.", ex);
         }
 
-        _logger.LogWebSocketConnectionEstablished();
-
         _readyTaskCompletionSource.SetResult(true);
+        _logger.LogWebSocketConnectionEstablished();
 
         // Payload processing.
         Memory<byte> buffer = GC.AllocateUninitializedArray<byte>(4 * 1024);
@@ -378,9 +414,9 @@ internal sealed class LavalinkPlayersManager : IPlayersManager, IAsyncDisposable
                     text: Encoding.UTF8.GetString(buffer[..receiveResult.Count].Span));
             }
 
-            IPayload? payload = JsonSerializer.Deserialize(
-                buffer[..receiveResult.Count].Span,
-                LavalinkModelsSourceGenerationContext.Default.IPayload);
+            IWebSocketPayload? payload = JsonSerializer.Deserialize<IWebSocketPayload>(
+                utf8Json: buffer[..receiveResult.Count].Span,
+                options: _jsonSerializerOptions);
 
             if (payload == null)
             {
@@ -412,77 +448,62 @@ internal sealed class LavalinkPlayersManager : IPlayersManager, IAsyncDisposable
 
         _logger.LogCreatingPlayer(guildID.Value);
 
-        // Try to obtain the voice state; if it isn't,
-        // create a channel and listen to it.
-        if (!_voiceStates.VoiceSessionsCache.TryGetValue(
-            voiceChannelID, out VoiceSession? voiceSession))
+        (bool isVoiceServerSet, VoiceServer? voiceServer) =
+            await _voiceStates.RetrieveVoiceServerAsync(guildID, cancellationToken);
+
+        if (!isVoiceServerSet)
         {
-            Threading.Channel<VoiceSession> channel =
-                Threading.Channel.CreateUnbounded<VoiceSession>();
-
-            _voiceStates.VoiceSessionsChannels.Add(
-                voiceChannelID, channel);
-
-            if (!(await channel.Reader.WaitToReadAsync(cancellationToken) &&
-                channel.Reader.TryRead(out voiceSession)))
-            {
-                throw new Exception(
-                    "The session ID is null - probably, " +
-                    "the bot left the voice channel.");
-            }
-
-            // After the value is retrieved: dispose channel.
-            _voiceStates.VoiceSessionsChannels.Remove(voiceChannelID);
+            throw new Exception("Not able to retrieve a voice server for the given guild ID.");
         }
 
-        // Do the same procedure as with the voice state object.
-        if (!_voiceStates.VoiceServersCache.TryGetValue(
-            guildID, out VoiceServer? voiceServer))
+        // Expliptical check for Endpoint presence.
+        if (string.IsNullOrEmpty(voiceServer!.Endpoint))
         {
-            Threading.Channel<VoiceServer> channel =
-                Threading.Channel.CreateUnbounded<VoiceServer>();
+            throw new Exception("Not able to proceed because of " +
+                "unavailability of the guild's voice server. ");
+        }
 
-            _voiceStates.VoiceServersChannels.Add(guildID, channel);
+        (bool isVoiceSessionSet, VoiceSession? voiceSession) =
+            await _voiceStates.RetrieveVoiceSessionAsync(voiceChannelID, cancellationToken);
 
-            if (!(await channel.Reader.WaitToReadAsync(cancellationToken) &&
-                channel.Reader.TryRead(out voiceServer)))
-            {
-                throw new Exception(
-                    "Before trying to create a player, a " +
-                    "connection to the voice chat should be established.");
-            }
-
-            // After the value is retrieved: dispose channel.
-            _voiceStates.VoiceServersChannels.Remove(guildID);
+        if (!isVoiceSessionSet)
+        {
+            throw new Exception("Can not retrieve a voice " +
+                "session for the given channel ID.");
         }
 
         _ = await _lavalinkAPI.UpateOrCreatePlayerAsync(
             sessionID: SessionId,
             guildID: guildID.Value,
             playerUpdate: new PlayerUpdateModel(
+                Volume: 50,
                 VoiceState: new VoiceStateModel(
-                    Token: voiceServer.Token!,
-                    Endpoint: voiceServer.Endpoint!,
-                    SessionId: voiceSession.SessionId!)));
+                    Token: voiceServer!.Token,
+                    Endpoint: voiceServer!.Endpoint,
+                    SessionId: voiceSession!.SessionId)));
 
-        LavalinkPlayer player = new();
+        LavalinkPlayer player = new(guildID, this);
         _playersCache.Add(guildID, player);
 
         return player;
     }
 
     public async Task DestroyPlayerAsync(
-        Snowflake guilID,
-        CancellationToken cancellationToken)
+        Snowflake guildID, CancellationToken cancellationToken)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
         cancellationToken.ThrowIfCancellationRequested();
         ArgumentNullException.ThrowIfNull(SessionId);
 
-        if (_playersCache.ContainsKey(guilID))
+        if (_playersCache.ContainsKey(guildID))
         {
-            _playersCache.Remove(guilID);
-            await _lavalinkAPI.DestroyPlayerAsync(SessionId, guilID.Value);
+            _playersCache.Remove(guildID);
+            await _lavalinkAPI.DestroyPlayerAsync(SessionId, guildID.Value);
+        }
+        else
+        {
+            throw new Exception("No player was found with the " +
+                "corresponding guild ID to destroy.");
         }
     }
 
@@ -492,11 +513,11 @@ internal sealed class LavalinkPlayersManager : IPlayersManager, IAsyncDisposable
     {
         TrackLoadResultModel result = await _lavalinkAPI.LoadTracksAsync(prompt);
         return result.ResultType == LoadResultTypes.Error
-            ? throw new Exception()
+            ? throw new Exception($"Lavalink returned a search error.\n\n{result.Data}")
             : result.ResultType switch
             {
                 LoadResultTypes.Track =>
-                    new Collection<ITrackHandle>()
+                    new ITrackHandle[]
                     {
                         JsonSerializer.Deserialize<LavalinkTrackHandle>(result.Data)
                     },
@@ -509,7 +530,7 @@ internal sealed class LavalinkPlayersManager : IPlayersManager, IAsyncDisposable
                     JsonSerializer.Deserialize<IEnumerable<LavalinkTrackHandle>>(result.Data)!
                         .Select(p => (ITrackHandle)p),
 
-                LoadResultTypes.Empty => new Collection<ITrackHandle>(),
+                LoadResultTypes.Empty => Array.Empty<ITrackHandle>(),
 
                 _ => throw new Exception("Invalid value for LoadResultTypes enum.")
             };
